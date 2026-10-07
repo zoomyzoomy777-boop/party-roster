@@ -1182,22 +1182,22 @@ $("#cap-btn").onclick = () => setCapture(true);
 $("#cap-exit").onclick = () => setCapture(false);
 addEventListener("keydown", e => { if (e.key === "Escape" && document.body.classList.contains("capture") && !dlg.open && !ptDlg.open && !autoDlg.open) setCapture(false); });
 
+/* copies in the auto-fill format (TEAM N → Party N → "1. Job - Name") so the text can be pasted straight back into ออโต้จัดตี้ */
 $("#copy-btn").onclick = async () => {
   const lines = [];
-  for (const side of ["top", "bot"]) {
-    lines.push(`== ${SIDES[side].th} ==`);
-    for (let n = 1; n <= PER_SIDE; n++) {
-      if ((n - 1) % PER_SQUAD === 0) lines.push(`-- PT.${(n - 1) / PER_SQUAD + 1} --`);
-      const d = slots[slotId(side, n)];
-      const txt = !occupied(d) ? "-"
-        : view === "job" ? (d.job || "-")
-        : view === "name" ? (d.name || "-")
-        : `${d.name || "(ยังไม่ใส่ชื่อ)"} — ${d.job || "ไม่ระบุอาชีพ"}`;
-      lines.push(`${String(n).padStart(2, "0")}. ${txt}`);
+  for (const [side, team] of [["top", 1], ["bot", 2]]) {
+    lines.push(`⚔️ Guild TEAM ${team}`);
+    for (let pt = 1; pt <= PER_SIDE / PER_SQUAD; pt++) {
+      const rows = [];
+      for (let n = (pt - 1) * PER_SQUAD + 1; n <= pt * PER_SQUAD; n++) {
+        const d = slots[slotId(side, n)];
+        if (occupied(d)) rows.push(`${rows.length + 1}. ${[d.job, "-", d.name].filter(Boolean).join(" ")}`);
+      }
+      if (rows.length) lines.push(`Party ${pt}`, ...rows);
     }
     lines.push("");
   }
-  copyText(lines.join("\n"), "คัดลอกรายชื่อแล้ว");
+  copyText(lines.join("\n").trim(), "คัดลอกรายชื่อแล้ว · วางในออโต้จัดตี้ได้เลย");
 };
 async function copyText(text, okMsg) {
   try { await navigator.clipboard.writeText(text); toast(okMsg); }
@@ -1221,12 +1221,15 @@ function parseRoster(text) {
     if (t) { side = t[1] === "1" ? "top" : t[1] === "2" ? "bot" : null; pt = 0; continue; }
     const p = line.match(/^Party\s*(\d+)/i);
     if (p) { pt = Number(p[1]); continue; }
-    const m = line.match(/^(\d+)[.)]\s*(.+?)\s+-\s+(.+)$/);
+    /* "1. Job - Name"; either side may be empty ("1. Job -" = seat reserved for a job, "1. - Name" = no job yet) */
+    const m = line.match(/^(\d+)[.)]\s*(.*?)\s+-(?:\s+(.*))?$/);
     if (!m || !side || pt < 1 || pt > PER_SIDE / PER_SQUAD) continue;
     const seat = Number(m[1]); if (seat < 1 || seat > PER_SQUAD) continue;
+    const job = m[2].trim(), name = (m[3] || "").trim();
+    if (!job && !name) continue;
     const key = side + ":" + pt;
     if (!parties.has(key)) parties.set(key, { side, pt, list: [] });
-    parties.get(key).list.push({ seat, job: m[2].trim(), name: m[3].trim() });
+    parties.get(key).list.push({ seat, job, name });
   }
   const out = [];
   for (const { side, pt, list } of parties.values()) {
@@ -1254,12 +1257,13 @@ async function autoFill(text) {
   if (!rows.length) throw new Error("ไม่เจอรายชื่อ · ต้องมีหัวข้อ TEAM 1 / TEAM 2, Party N และบรรทัด “1. อาชีพ - ชื่อ”");
   const next = {}, seen = new Set(), sides = new Set(), unknown = [], dup = [];
   for (const r of rows) {
-    const m = findMember(r.name), name = m ? m.name : r.name;
-    if (seen.has(name)) { dup.push(name); continue; }
-    seen.add(name); sides.add(r.id.split("-")[0]);
-    const data = { name, job: resolveJob(r.job, m) };
+    const m = r.name ? findMember(r.name) : null, name = m ? m.name : r.name;
+    if (name && seen.has(name)) { dup.push(name); continue; }
+    if (name) seen.add(name);
+    sides.add(r.id.split("-")[0]);
+    const data = { name, job: r.job ? resolveJob(r.job, m) : (m && m.job) || "" };
     if (m && m.uid) data.uid = m.uid;
-    if (!m) unknown.push(r.name);
+    if (name && !m) unknown.push(r.name);
     next[r.id] = data;
   }
   const ids = ALL_IDS.filter(id => sides.has(id.split("-")[0]));

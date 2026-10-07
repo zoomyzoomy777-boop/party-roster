@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Party Roster 80</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
@@ -22,6 +23,7 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body {
   background: var(--frame); color: var(--light); font-family: var(--f-body); font-size: 14px;
   margin: 0; padding-inline: 16px; padding-block: 16px 40px;
@@ -279,7 +281,7 @@ dialog::backdrop { background: rgba(10, 10, 12, .75); }
 .auto-msg { font-size: 12px; white-space: pre-wrap; margin: 0; min-height: 1em; color: var(--mute); }
 .auto-msg.warn { color: var(--orange); font-weight: 600; }
 
-/* ---------- access gate: roster stays hidden until the viewer is approved (Editor in the share menu) ---------- */
+/* ---------- lock screen: roster stays hidden until the viewer enters the guild passphrase ---------- */
 body:not(.unlocked) .wrap, body:not(.unlocked) .cap-exit { display: none !important; }
 body.unlocked .gate { display: none; }
 .gate { min-height: calc(100vh - 56px); display: grid; place-items: center; }
@@ -290,27 +292,17 @@ body.unlocked .gate { display: none; }
 .gate-msg { margin: 0; font-size: 14px; line-height: 1.55; }
 .gate-msg.warn { color: var(--orange); font-weight: 600; }
 .gate-form { display: grid; gap: 8px; }
-.gate-form input { background: var(--frame); border: 1px solid var(--rule); color: var(--light); padding: 9px 11px; font-family: var(--f-body); font-size: 15px; width: 100%; }
+.gate-form input:not([type=checkbox]), .field input[type=password] { background: var(--frame); border: 1px solid var(--rule); color: var(--light); padding: 9px 11px; font-family: var(--f-body); font-size: 15px; width: 100%; }
 .gate-form .btn { justify-self: start; }
-.gate-form[hidden] { display: none; }
+.gate-form[hidden], .gate-form .field[hidden] { display: none; }
+.gate-form .remember { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--mute); cursor: pointer; }
+.gate-form .remember input { accent-color: var(--lime); }
 .gate-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .gate-actions:empty { display: none; }
 .gate-actions a.btn { text-decoration: none; }
-.btn .badge { background: var(--orange); color: var(--ink); padding: 0 5px; min-width: 2ch; text-align: center; }
 
-/* ---------- access requests dialog (Editors / owner) ---------- */
-#req-dlg { width: min(560px, calc(100vw - 32px)); }
-.req-list { display: grid; gap: 6px; }
-.req { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 10px; align-items: center; background: var(--frame); border: 1px solid var(--rule); padding: 8px; }
-.req img { width: 32px; height: 32px; border-radius: 50%; }
-.req .who { min-width: 0; display: grid; gap: 2px; }
-.req .who b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.req .who small { font-family: var(--f-mono); font-size: 11px; color: var(--mute); overflow-wrap: anywhere; }
-.req .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
-.req .st { font-family: var(--f-mono); font-size: 10px; font-weight: 600; padding: 1px 5px; background: var(--rule); }
-.req .st.pending { background: var(--orange); color: var(--ink); }
-.req .st.approved { background: var(--lime); color: var(--ink); }
-@media (max-width: 480px) { .req { grid-template-columns: 32px minmax(0, 1fr); } .req .acts { grid-column: 1 / -1; justify-content: flex-start; } }
+/* ---------- change-passphrase dialog (Editors / owner) ---------- */
+#pw-dlg { width: min(460px, calc(100vw - 32px)); }
 
 .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--lime); color: var(--ink); border: 2px solid var(--ink); padding: 7px 14px; font-family: var(--f-mono); font-size: 12px; font-weight: 600; z-index: 10; }
 
@@ -332,17 +324,22 @@ body.unlocked .gate { display: none; }
 <section class="gate" id="gate" aria-labelledby="gate-h">
   <div class="gate-card">
     <div class="dlg-head">
-      <h2 id="gate-h"><svg viewBox="0 0 18 18" aria-hidden="true"><rect x="3" y="8" width="12" height="9" fill="#111214"/><path d="M5.5 8 V5.5 a3.5 3.5 0 0 1 7 0 V8" stroke="#111214" stroke-width="2.2" fill="none"/></svg>ต้องได้รับสิทธิ์ก่อนเข้าดู</h2>
+      <h2 id="gate-h"><svg viewBox="0 0 18 18" aria-hidden="true"><rect x="3" y="8" width="12" height="9" fill="#111214"/><path d="M5.5 8 V5.5 a3.5 3.5 0 0 1 7 0 V8" stroke="#111214" stroke-width="2.2" fill="none"/></svg><span id="gate-title">ข้อมูลถูกเข้ารหัส</span></h2>
       <span class="code">PARTY ROSTER 80</span>
     </div>
     <div class="gate-body">
-      <p class="gate-msg" id="gate-msg" role="status">กำลังตรวจสอบสิทธิ์…</p>
-      <form class="gate-form" id="req-form" autocomplete="off" hidden>
+      <p class="gate-msg" id="gate-msg" role="status">กำลังเชื่อมต่อ…</p>
+      <form class="gate-form" id="pw-form" autocomplete="off" hidden>
         <div class="field">
-          <label for="req-note">ชื่อในเกม / ข้อความถึงเจ้าของกิลด์</label>
-          <input type="text" id="req-note" maxlength="80" placeholder="เช่น Zoomyyz · ตี้ล่าง">
+          <label for="pw-in">รหัสผ่านกิลด์</label>
+          <input type="password" id="pw-in" maxlength="128" autocomplete="current-password">
         </div>
-        <button class="btn lime" type="submit" id="req-go">ขอสิทธิ์เข้าถึง</button>
+        <div class="field" id="pw-again-f" hidden>
+          <label for="pw-again">ยืนยันรหัสผ่าน</label>
+          <input type="password" id="pw-again" maxlength="128" autocomplete="new-password">
+        </div>
+        <label class="remember"><input type="checkbox" id="pw-remember" checked>จำรหัสไว้บนเครื่องนี้</label>
+        <button class="btn lime" type="submit" id="pw-go">ปลดล็อก</button>
       </form>
       <div class="gate-actions" id="gate-actions"></div>
     </div>
@@ -375,7 +372,8 @@ body.unlocked .gate { display: none; }
         <button class="btn orange" id="auto-btn" type="button" title="วางรายชื่อ TEAM 1 / TEAM 2 แล้วจัดลงตารางอัตโนมัติ">ออโต้จัดตี้</button>
         <button class="btn" id="copy-btn" type="button">คัดลอกรายชื่อ</button>
         <button class="btn" id="share-btn" type="button" title="ส่งลิงก์หน้านี้ให้คนอื่น">แชร์เว็บ</button>
-        <button class="btn" id="req-btn" type="button" title="คำขอสิทธิ์เข้าถึงหน้านี้" hidden>คำขอสิทธิ์ <span class="badge" id="req-n" hidden>0</span></button>
+        <button class="btn" id="pw-btn" type="button" title="เปลี่ยนรหัสผ่านกิลด์ (เข้ารหัสข้อมูลใหม่ทั้งหมด)" hidden>เปลี่ยนรหัส</button>
+        <button class="btn" id="lock-btn" type="button" title="ล็อกหน้านี้และลืมรหัสบนเครื่องนี้">ล็อก</button>
         <button class="btn" id="mute-btn" type="button" aria-pressed="false">เสียง: เปิด</button>
         <label class="vol" title="ระดับเสียง"><span>VOL</span><input id="vol" type="range" min="0" max="100" step="5" value="100" aria-label="ระดับเสียง"><output id="vol-v">100</output></label>
         <button class="btn lime" id="cap-btn" type="button">โหมดแคปจอ</button>
@@ -494,15 +492,23 @@ body.unlocked .gate { display: none; }
   </form>
 </dialog>
 
-<dialog id="req-dlg" aria-labelledby="req-title">
-  <div class="dlg-head">
-    <h3 id="req-title">คำขอสิทธิ์เข้าถึง</h3>
-    <button type="button" class="pt-x" id="req-x" aria-label="ปิด">×</button>
-  </div>
-  <div class="dlg-body">
-    <p class="pt-rule">อนุมัติ = เปิดเมนู Share ของหน้านี้ แล้วตั้งคนนั้นเป็น Editor · จากนั้นกด “อนุมัติแล้ว” เพื่อแจ้งเขาให้รีเฟรช</p>
-    <div class="req-list" id="req-list"></div>
-  </div>
+<dialog id="pw-dlg" aria-labelledby="pw-title">
+  <form id="pw-dlg-form" method="dialog" autocomplete="off">
+    <div class="dlg-head">
+      <h3 id="pw-title">เปลี่ยนรหัสผ่านกิลด์</h3>
+      <button type="button" class="pt-x" id="pw-x" aria-label="ปิด">×</button>
+    </div>
+    <div class="dlg-body">
+      <p class="pt-rule">ข้อมูลทั้งหมดจะถูกเข้ารหัสใหม่ด้วยรหัสนี้ · ทุกคนต้องใส่รหัสใหม่ · ถ้าลืมรหัส ข้อมูลจะเปิดไม่ได้อีก</p>
+      <div class="field"><label for="pw-new">รหัสใหม่ (อย่างน้อย 6 ตัว)</label><input type="password" id="pw-new" maxlength="128" autocomplete="new-password"></div>
+      <div class="field"><label for="pw-new2">ยืนยันรหัสใหม่</label><input type="password" id="pw-new2" maxlength="128" autocomplete="new-password"></div>
+      <div class="err" id="pw-err" role="alert"></div>
+    </div>
+    <div class="dlg-foot">
+      <span></span>
+      <button class="btn lime" type="submit" id="pw-save">เข้ารหัสใหม่</button>
+    </div>
+  </form>
 </dialog>
 
 <div class="toast" id="toast" hidden></div>
@@ -879,7 +885,7 @@ async function placeMember(id, name) {
 /* member list writes */
 const LS_MEMBERS = LS_KEY + ":members";
 async function saveMembers(list) {
-  if (mode === "live") await db.doc("config/members").set({ ...membersMeta, list });
+  if (mode === "live") await db.doc("config/members").set(await seal({ ...membersMeta, list }));
   else { try { localStorage.setItem(LS_MEMBERS, JSON.stringify(list)); } catch (e) {} }
   setMembers(list);
 }
@@ -969,10 +975,9 @@ $("#f-name").addEventListener("input", updateNameHint);
 async function writeSlot(id, data) {
   markLocal();
   if (occupied(data)) slots[id] = data; else delete slots[id];
-  if (mode === "live") {
-    const ref = col.doc(id);
-    if (occupied(data)) await ref.set(data); else await ref.delete();
-  } else saveLocal();
+  /* an emptied slot is written as an encrypted {} rather than deleted, so db does not reveal which seats are taken */
+  if (mode === "live") await col.doc(id).set(await seal(occupied(data) ? data : {}));
+  else saveLocal();
 }
 async function swap(a, b) {
   if (a === b) return;
@@ -1213,7 +1218,7 @@ async function autoFill(text) {
   render();
   return { placed: Object.keys(next).length, unknown, dup };
 }
-/* the last list used is kept in db (config/autofill), not in the page source, so only approved viewers can read it */
+/* the last list used is kept encrypted in db (config/autofill), not in the page source, so only passphrase holders can read it */
 let autofillText = "";
 const autoDlg = $("#auto-dlg");
 $("#auto-btn").onclick = () => {
@@ -1233,7 +1238,7 @@ $("#auto-form").addEventListener("submit", async e => {
     const text = $("#auto-txt").value;
     const { placed, unknown, dup } = await autoFill(text);
     sfx("full");
-    if (mode === "live" && text !== autofillText) { autofillText = text; db.doc("config/autofill").set({ text }).catch(() => {}); }
+    if (mode === "live" && text !== autofillText) { autofillText = text; saveAutofill().catch(() => {}); }
     const notes = [];
     if (unknown.length) notes.push(`ไม่พบในรายชื่อกิลด์ ${unknown.length} คน (ใส่ตามที่พิมพ์): ${unknown.join(", ")}`);
     if (dup.length) notes.push(`ชื่อซ้ำ ข้ามไป: ${dup.join(", ")}`);
@@ -1245,119 +1250,221 @@ $("#auto-form").addEventListener("submit", async e => {
   } finally { go.disabled = false; }
 });
 
-/* ---------- access gate ----------
-   The db rules declared at publish let only Editors (and the owner) read or write the roster;
-   everyone else can only write their own request at requests/<their id>. Approving someone =
-   setting them to Editor in the artifact's Share menu — the page itself cannot grant access. */
-let user = null, myId = null;
-const fmtTime = iso => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("th-TH", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); };
-const RELOAD_BTN = `<button class="btn lime" type="button" data-act="reload">รีเฟรช</button>`;
-function showGate(msg, { warn = false, form = false, actions = "" } = {}) {
-  $("#gate-msg").textContent = msg; $("#gate-msg").classList.toggle("warn", warn);
-  $("#req-form").hidden = !form;
-  $("#gate-actions").innerHTML = actions;
+/* ---------- encryption ----------
+   Everything the roster keeps in db (slots/*, config/members, config/autofill) is AES-GCM ciphertext
+   {iv, ct} under a 256-bit key derived with PBKDF2-SHA256 from the guild passphrase. config/crypto holds
+   only the salt and an encrypted check value, so anyone can open the link but only passphrase holders
+   can read the roster. The passphrase itself never leaves the browser. */
+const CHECK = "party-roster-80";
+const PBKDF2_ITER = 250000;
+const LS_SECRET = LS_KEY + ":key";
+let user = null, isAdmin = false, started = false;
+let cryptoDoc = null;      // {v, salt, iter, check}
+let key = null, oldKey = null;   // oldKey: still opens docs not yet re-encrypted after a passphrase change
+const enc = new TextEncoder(), dec = new TextDecoder();
+function b64(buf) { const a = new Uint8Array(buf); let s = ""; for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode(...a.subarray(i, i + 0x8000)); return btoa(s); }
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const isSealed = v => !!(v && typeof v.iv === "string" && typeof v.ct === "string");
+async function deriveKey(pass, salt, iter) {
+  const base = await crypto.subtle.importKey("raw", enc.encode(pass), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({ name: "PBKDF2", salt: unb64(salt), iterations: iter, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
 }
-function watchOwnRequest() {
-  db.doc("requests/" + myId).onSnapshot(s => {
-    const r = s.exists ? s.data() : null;
-    if (!r) showGate("หน้าจัดตี้นี้ดูได้เฉพาะคนที่ได้รับอนุมัติ · ส่งคำขอแล้วรอเจ้าของกิลด์อนุมัติ", { form: true });
-    else if (r.status === "approved") showGate("ได้รับอนุมัติแล้ว · กดรีเฟรชเพื่อเข้าหน้าจัดตี้ (ถ้ายังเข้าไม่ได้ ให้แจ้งเจ้าของกิลด์ตั้งคุณเป็น Editor ในเมนู Share)", { actions: RELOAD_BTN });
-    else if (r.status === "rejected") showGate("คำขอของคุณถูกปฏิเสธ · ส่งคำขอใหม่ได้ถ้าต้องการ", { warn: true, form: true });
-    else showGate(`ส่งคำขอแล้ว${r.at ? " เมื่อ " + fmtTime(r.at) : ""} · รอเจ้าของกิลด์อนุมัติ`, { actions: `<button class="btn ghost" type="button" data-act="cancel">ยกเลิกคำขอ</button>` });
-  }, () => showGate("เชื่อมต่อไม่ได้ · ลองรีเฟรชหน้าอีกครั้ง", { warn: true, actions: RELOAD_BTN }));
+async function seal(obj, k = key) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, k, enc.encode(JSON.stringify(obj)));
+  return { iv: b64(iv), ct: b64(ct) };
 }
-$("#req-form").addEventListener("submit", async e => {
-  e.preventDefault();
-  const b = $("#req-go"); b.disabled = true;
+async function unsealWith(box, k) { return JSON.parse(dec.decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(box.iv) }, k, unb64(box.ct)))); }
+async function unseal(box) {
+  for (const k of [key, oldKey]) if (k) { try { return await unsealWith(box, k); } catch (e) {} }
+  return null;
+}
+async function keyMatches(k) { try { return (await unsealWith(cryptoDoc.check, k)) === CHECK; } catch (e) { return false; } }
+async function rememberKey(k) {
+  try { localStorage.setItem(LS_SECRET, JSON.stringify({ salt: cryptoDoc.salt, k: b64(await crypto.subtle.exportKey("raw", k)) })); } catch (e) {}
+}
+async function rememberedKey() {
   try {
-    await db.doc("requests/" + myId).set({ status: "pending", note: $("#req-note").value.trim().slice(0, 80), at: new Date().toISOString() });
-    sfx("drop");
-  } catch (err) {
-    const viewOnly = err && err.code === "invalid_argument";
-    showGate(viewOnly ? "บัญชีของคุณส่งคำขอในหน้านี้ไม่ได้ (สิทธิ์ดูอย่างเดียว) · ติดต่อเจ้าของกิลด์โดยตรง" : "ส่งคำขอไม่สำเร็จ ลองอีกครั้ง", { warn: true, form: !viewOnly });
-  } finally { b.disabled = false; }
-});
-$("#gate-actions").addEventListener("click", async e => {
-  const a = e.target.closest("[data-act]"); if (!a) return;
-  if (a.dataset.act === "reload") location.reload();
-  else if (a.dataset.act === "cancel") { try { await db.doc("requests/" + myId).delete(); } catch (err) { toast("ยกเลิกไม่สำเร็จ ลองอีกครั้ง"); } }
-});
+    const v = JSON.parse(localStorage.getItem(LS_SECRET) || "null");
+    if (!v || v.salt !== cryptoDoc.salt) return null;
+    return await crypto.subtle.importKey("raw", unb64(v.k), "AES-GCM", true, ["encrypt", "decrypt"]);
+  } catch (e) { return null; }
+}
+function forgetKey() { try { localStorage.removeItem(LS_SECRET); } catch (e) {} }
+async function newCryptoDoc(pass) {
+  const salt = b64(crypto.getRandomValues(new Uint8Array(16)));
+  const k = await deriveKey(pass, salt, PBKDF2_ITER);
+  return { k, doc: { v: 1, salt, iter: PBKDF2_ITER, check: await seal(CHECK, k) } };
+}
+const saveAutofill = async () => db.doc("config/autofill").set(await seal({ text: autofillText }));
 
-/* requests panel for approved viewers */
-let requests = [];
-const reqDlg = $("#req-dlg");
-const REQ_ST = { pending: "รออนุมัติ", approved: "อนุมัติแล้ว", rejected: "ปฏิเสธแล้ว" };
-const reqState = r => (r.status === "approved" || r.status === "rejected" ? r.status : "pending");
-function watchRequests() {
-  db.collection("requests").onSnapshot(snap => {
-    requests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    const n = requests.filter(r => reqState(r) === "pending").length;
-    $("#req-btn").hidden = false; $("#req-n").textContent = n; $("#req-n").hidden = !n;
-    if (reqDlg.open) renderRequests();
-  }, () => {});
+/* ---------- lock screen ---------- */
+const RELOAD_BTN = `<button class="btn lime" type="button" data-act="reload">รีเฟรช</button>`;
+let gateMode = null;       // "unlock" | "setup" | null
+function showGate(msg, { warn = false, form = null, actions = "" } = {}) {
+  gateMode = form;
+  $("#gate-title").textContent = form === "setup" ? "ตั้งรหัสผ่านกิลด์" : "ข้อมูลถูกเข้ารหัส";
+  $("#gate-msg").textContent = msg; $("#gate-msg").classList.toggle("warn", warn);
+  $("#pw-form").hidden = !form;
+  $("#pw-again-f").hidden = form !== "setup";
+  $("#pw-go").textContent = form === "setup" ? "ตั้งรหัสและเข้ารหัสข้อมูล" : "ปลดล็อก";
+  $("#gate-actions").innerHTML = actions;
+  if (form) $("#pw-in").focus();
 }
-async function renderRequests() {
-  const list = [...requests].sort((a, b) => (reqState(a) === "pending" ? 0 : 1) - (reqState(b) === "pending" ? 0 : 1) || String(b.at || "").localeCompare(String(a.at || "")));
-  if (!list.length) { $("#req-list").innerHTML = `<p class="hint">ยังไม่มีคำขอ</p>`; return; }
-  const ps = await user.profiles(list.map(r => r.id));
-  $("#req-list").innerHTML = list.map(r => {
-    const p = ps[r.id] || {}, st = reqState(r);
-    return `<div class="req" data-id="${esc(r.id)}">
-      <img src="${esc(p.avatarUrl || "")}" alt="">
-      <div class="who"><b>${esc(p.name || "ไม่ทราบชื่อ")}</b><small>${p.email ? esc(p.email) + " · " : ""}${esc(fmtTime(r.at))}</small>${r.note ? `<small>“${esc(r.note)}”</small>` : ""}</div>
-      <div class="acts"><span class="st ${st}">${REQ_ST[st]}</span>${st !== "approved" ? `<button class="btn lime" type="button" data-act="approved">อนุมัติแล้ว</button>` : ""}${st !== "rejected" ? `<button class="btn" type="button" data-act="rejected">ปฏิเสธ</button>` : ""}<button class="btn ghost" type="button" data-act="delete">ลบ</button></div>
-    </div>`;
-  }).join("");
+function askPassphrase(msg, warn = false) {
+  showGate(msg || "รายชื่อในหน้านี้ถูกเข้ารหัส · ใส่รหัสผ่านกิลด์เพื่อเปิดดู", { warn, form: "unlock" });
 }
-$("#req-btn").onclick = () => { renderRequests(); reqDlg.showModal(); };
-$("#req-x").onclick = () => reqDlg.close();
-reqDlg.addEventListener("click", e => { if (e.target === reqDlg) reqDlg.close(); });
-$("#req-list").addEventListener("click", async e => {
-  const b = e.target.closest("[data-act]"); if (!b) return;
-  const act = b.dataset.act, ref = db.doc("requests/" + b.closest(".req").dataset.id);
-  b.disabled = true;
+async function onCrypto(s) {
+  const c = s.exists ? s.data() : null;
+  cryptoDoc = c && typeof c.salt === "string" && isSealed(c.check) ? c : null;
+  if (started) {
+    /* the passphrase was changed (or removed) from another device: this key no longer opens the data */
+    if (!cryptoDoc || !(await keyMatches(key))) { forgetKey(); location.reload(); }
+    return;
+  }
+  if (!cryptoDoc) {
+    if (isAdmin) showGate("ยังไม่ได้ตั้งรหัสผ่านกิลด์ · ตั้งรหัสเพื่อเข้ารหัสรายชื่อทั้งหมด แล้วบอกรหัสให้สมาชิกในกิลด์", { form: "setup" });
+    else showGate("เจ้าของกิลด์ยังไม่ได้ตั้งรหัสผ่าน · ลองใหม่ภายหลัง", { actions: RELOAD_BTN });
+    return;
+  }
+  const k = await rememberedKey();
+  if (k && await keyMatches(k)) { key = k; startLive(); }
+  else if (gateMode !== "unlock") askPassphrase();
+}
+$("#pw-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const pass = $("#pw-in").value, go = $("#pw-go"), label = go.textContent;
+  if (!pass) { $("#pw-in").focus(); return; }
+  go.disabled = true; go.textContent = "กำลังตรวจ…";
   try {
-    if (act === "delete") await ref.delete();
-    else await ref.update({ status: act, decidedAt: new Date().toISOString() });
-    toast(act === "approved" ? "บันทึกแล้ว · อย่าลืมตั้งคนนี้เป็น Editor ในเมนู Share" : act === "rejected" ? "ปฏิเสธคำขอแล้ว" : "ลบคำขอแล้ว");
-  } catch (err) { toast("บันทึกไม่สำเร็จ ลองอีกครั้ง"); b.disabled = false; }
+    if (gateMode === "setup") {
+      if (pass.length < 6) { showGate("รหัสต้องยาวอย่างน้อย 6 ตัว", { warn: true, form: "setup" }); return; }
+      if (pass !== $("#pw-again").value) { showGate("รหัสทั้งสองช่องไม่ตรงกัน", { warn: true, form: "setup" }); return; }
+      const { k, doc } = await newCryptoDoc(pass);
+      key = k;
+      await db.doc("config/crypto").set(doc);
+      cryptoDoc = doc;
+    } else {
+      const k = await deriveKey(pass, cryptoDoc.salt, cryptoDoc.iter || PBKDF2_ITER);
+      if (!(await keyMatches(k))) { $("#pw-in").value = ""; askPassphrase("รหัสผ่านไม่ถูกต้อง ลองอีกครั้ง", true); sfx("remove"); return; }
+      key = k;
+    }
+    if ($("#pw-remember").checked) await rememberKey(key); else forgetKey();
+    $("#pw-in").value = ""; $("#pw-again").value = "";
+    sfx("drop");
+    startLive();
+  } catch (err) {
+    key = null;
+    showGate(err && err.code === "invalid_argument" ? "บัญชีนี้ตั้งรหัสไม่ได้ (ต้องเป็น Editor ขึ้นไป)" : "ทำรายการไม่สำเร็จ ลองอีกครั้ง", { warn: true, form: gateMode });
+  } finally { go.disabled = false; if (go.textContent === "กำลังตรวจ…") go.textContent = label; }
+});
+$("#gate-actions").addEventListener("click", e => {
+  const a = e.target.closest("[data-act]"); if (a && a.dataset.act === "reload") location.reload();
+});
+$("#lock-btn").onclick = () => { forgetKey(); location.reload(); };
+
+/* change passphrase (Editors / owner): new salt + key, then every doc is re-encrypted under it */
+const pwDlg = $("#pw-dlg");
+$("#pw-btn").onclick = () => { $("#pw-new").value = ""; $("#pw-new2").value = ""; $("#pw-err").textContent = ""; pwDlg.showModal(); $("#pw-new").focus(); };
+$("#pw-x").onclick = () => pwDlg.close();
+$("#pw-dlg-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const pass = $("#pw-new").value, err = $("#pw-err"), b = $("#pw-save");
+  if (pass.length < 6) { err.textContent = "รหัสต้องยาวอย่างน้อย 6 ตัว"; return; }
+  if (pass !== $("#pw-new2").value) { err.textContent = "รหัสทั้งสองช่องไม่ตรงกัน"; return; }
+  b.disabled = true; b.textContent = "กำลังเข้ารหัส…"; err.textContent = "";
+  const prev = key;
+  let remembered = false; try { remembered = !!localStorage.getItem(LS_SECRET); } catch (e2) {}
+  try {
+    const { k, doc } = await newCryptoDoc(pass);
+    oldKey = prev; key = k;
+    try { await db.doc("config/crypto").set(doc); }
+    catch (e2) { key = prev; oldKey = null; throw e2; }
+    cryptoDoc = doc;
+    if (remembered) await rememberKey(key);
+    for (let i = 0; i < ALL_IDS.length; i += 20)
+      await Promise.all(ALL_IDS.slice(i, i + 20).map(async id => col.doc(id).set(await seal(occupied(slots[id]) ? slots[id] : {}))));
+    if (membersLoaded) await saveMembers(members);
+    if (autofillText) await saveAutofill();
+    oldKey = null;
+    pwDlg.close(); sfx("full"); toast("เปลี่ยนรหัสแล้ว · บอกรหัสใหม่ให้สมาชิก");
+  } catch (e2) {
+    err.textContent = e2 && e2.code === "invalid_argument" ? "บัญชีนี้เปลี่ยนรหัสไม่ได้ (ต้องเป็น Editor ขึ้นไป)" : "เข้ารหัสไม่ครบ ลองกดอีกครั้ง";
+  } finally { b.disabled = false; b.textContent = "เข้ารหัสใหม่"; }
 });
 
 /* ---------- boot ---------- */
 render();
+function startLocal() {
+  document.body.classList.add("unlocked");
+  try { if (localStorage.getItem(LS_KEY + ":cap")) setCapture(true); } catch (e) {}
+  $("#lock-btn").hidden = true;
+  loadLocal();
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem(LS_MEMBERS) || "[]"); } catch (e) {}
+  try { const at = localStorage.getItem(LS_MEMBERS + ":at"); if (at) showSyncedAt(at); } catch (e) {}
+  setMembers(list);
+  setStatus(false, "บันทึกเฉพาะเครื่องนี้");
+  render();
+}
+const cleanSlot = v => ({ name: String(v.name || ""), job: String(v.job || ""), ...(v.uid ? { uid: String(v.uid) } : {}) });
 async function startLive() {
+  if (started) return;
+  started = true;
   document.body.classList.add("unlocked");
   try { if (localStorage.getItem(LS_KEY + ":cap")) setCapture(true); } catch (e) {}
   col = db.collection("slots");
-  db.doc("config/members").onSnapshot(s => {
-    const v = s.exists ? s.data() : null;
+  try { const w = user && await user.can("data.write"); if (w === false) canWrite = false; } catch (e) {}
+  $("#pw-btn").hidden = !isAdmin;
+  /* docs still in plaintext (written before encryption was turned on) are read as-is and re-encrypted by the first writer */
+  let memSeq = 0;
+  db.doc("config/members").onSnapshot(async s => {
+    const seq = ++memSeq, raw = s.exists ? s.data() : null;
+    const legacy = !!raw && !isSealed(raw);
+    const v = legacy ? raw : raw ? await unseal(raw) : null;
+    if (seq !== memSeq) return;
     membersMeta = {}; if (v) for (const k in v) if (k !== "list") membersMeta[k] = v[k];
     if (v && v.syncedAt) showSyncedAt(v.syncedAt);
     setMembers(v ? v.list : []);
+    if (legacy && canWrite) saveMembers(members).catch(() => {});
   }, () => {});
-  db.doc("config/autofill").onSnapshot(s => { autofillText = s.exists ? String(s.data().text || "") : ""; }, () => {});
-  try { const w = await user.can("data.write"); if (w === false) canWrite = false; } catch (e) {}
-  col.onSnapshot(snap => {
+  let autoSeq = 0;
+  db.doc("config/autofill").onSnapshot(async s => {
+    const seq = ++autoSeq, raw = s.exists ? s.data() : null;
+    const legacy = !!raw && !isSealed(raw);
+    const v = legacy ? raw : raw ? await unseal(raw) : null;
+    if (seq !== autoSeq) return;
+    autofillText = v ? String(v.text || "") : "";
+    if (legacy && canWrite) saveAutofill().catch(() => {});
+  }, () => {});
+  let slotSeq = 0;
+  col.onSnapshot(async snap => {
+    const seq = ++slotSeq, legacy = [];
+    const rows = await Promise.all(snap.docs.filter(d => ALL_IDS.includes(d.id)).map(async d => {
+      const raw = d.data();
+      if (isSealed(raw)) return [d.id, await unseal(raw)];
+      legacy.push(d.id); return [d.id, raw];
+    }));
+    if (seq !== slotSeq) return;
     const next = {};
-    snap.docs.forEach(d => { if (ALL_IDS.includes(d.id)) { const v = d.data(); if (occupied(v)) next[d.id] = { name: String(v.name || ""), job: String(v.job || ""), ...(v.uid ? { uid: String(v.uid) } : {}) }; } });
+    for (const [id, v] of rows) if (occupied(v)) next[id] = cleanSlot(v);
     slots = next; mode = "live";
-    setStatus(true, canWrite ? "ออนไลน์ · ทุกคนเห็นรายชื่อเดียวกัน" : "ออนไลน์ · ดูอย่างเดียว");
+    setStatus(true, canWrite ? "ออนไลน์ · เข้ารหัสแล้ว" : "ออนไลน์ · เข้ารหัสแล้ว · ดูอย่างเดียว");
     render();
+    if (canWrite) for (const id of legacy) { try { await col.doc(id).set(await seal(next[id] || {})); } catch (e) { break; } }
   }, () => { mode = "local"; loadLocal(); setStatus(false, "การเชื่อมต่อหลุด · บันทึกเฉพาะเครื่องนี้"); render(); });
-  watchRequests();
+  /* the old access-request system kept names and notes in plaintext at requests/*: clear them out */
+  if (isAdmin) db.collection("requests").get().then(s => Promise.all(s.docs.map(d => db.doc("requests/" + d.id).delete()))).catch(() => {});
 }
 (async () => {
-  /* outside claude.ai (e.g. GitHub Pages) there is no signed-in viewer to approve: point to the claude.ai page */
-  if (!window.claude || !claude.use) {
-    showGate("หน้านี้ต้องเปิดผ่านลิงก์ claude.ai และได้รับอนุมัติจากเจ้าของกิลด์ก่อน", { actions: `<a class="btn lime" href="${SHARE_URL}" target="_blank" rel="noopener">เปิดหน้าใน claude.ai</a>` });
-    return;
-  }
+  /* outside claude.ai (e.g. GitHub Pages) there is no shared db: open straight away and keep everything on this device */
+  if (!window.claude || !claude.use) { startLocal(); return; }
+  if (!window.crypto || !crypto.subtle) { showGate("เบราว์เซอร์นี้ไม่รองรับการเข้ารหัส · ลองเบราว์เซอร์อื่น", { warn: true }); return; }
   try {
     [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
-    myId = user ? await user.id() : null;
-    if (!db || !myId) { showGate("เข้าสู่ระบบ claude.ai ก่อน แล้วเปิดลิงก์นี้อีกครั้ง", { warn: true, actions: RELOAD_BTN }); return; }
-    if (await user.canEdit()) startLive();
-    else watchOwnRequest();
-  } catch (e) { showGate("ตรวจสอบสิทธิ์ไม่สำเร็จ · ลองรีเฟรชหน้า", { warn: true, actions: RELOAD_BTN }); }
+    if (!db) { showGate("เข้าสู่ระบบ claude.ai ก่อน แล้วเปิดลิงก์นี้อีกครั้ง", { warn: true, actions: RELOAD_BTN }); return; }
+    try { isAdmin = !!(user && await user.canEdit()); } catch (e) {}
+    db.doc("config/crypto").onSnapshot(onCrypto, () => showGate("เชื่อมต่อไม่ได้ · ลองรีเฟรชหน้าอีกครั้ง", { warn: true, actions: RELOAD_BTN }));
+  } catch (e) { showGate("เชื่อมต่อไม่สำเร็จ · ลองรีเฟรชหน้า", { warn: true, actions: RELOAD_BTN }); }
 })();
 </script>

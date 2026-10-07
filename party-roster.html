@@ -279,6 +279,39 @@ dialog::backdrop { background: rgba(10, 10, 12, .75); }
 .auto-msg { font-size: 12px; white-space: pre-wrap; margin: 0; min-height: 1em; color: var(--mute); }
 .auto-msg.warn { color: var(--orange); font-weight: 600; }
 
+/* ---------- access gate: roster stays hidden until the viewer is approved (Editor in the share menu) ---------- */
+body:not(.unlocked) .wrap, body:not(.unlocked) .cap-exit { display: none !important; }
+body.unlocked .gate { display: none; }
+.gate { min-height: calc(100vh - 56px); display: grid; place-items: center; }
+.gate-card { width: min(520px, 100%); background: var(--panel); border: 2px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); }
+.gate-card h2 { margin: 0; font-family: var(--f-thai-head); font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.gate-card h2 svg { width: 18px; height: 18px; flex: none; }
+.gate-body { padding: 16px; display: grid; gap: 12px; }
+.gate-msg { margin: 0; font-size: 14px; line-height: 1.55; }
+.gate-msg.warn { color: var(--orange); font-weight: 600; }
+.gate-form { display: grid; gap: 8px; }
+.gate-form input { background: var(--frame); border: 1px solid var(--rule); color: var(--light); padding: 9px 11px; font-family: var(--f-body); font-size: 15px; width: 100%; }
+.gate-form .btn { justify-self: start; }
+.gate-form[hidden] { display: none; }
+.gate-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.gate-actions:empty { display: none; }
+.gate-actions a.btn { text-decoration: none; }
+.btn .badge { background: var(--orange); color: var(--ink); padding: 0 5px; min-width: 2ch; text-align: center; }
+
+/* ---------- access requests dialog (Editors / owner) ---------- */
+#req-dlg { width: min(560px, calc(100vw - 32px)); }
+.req-list { display: grid; gap: 6px; }
+.req { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 10px; align-items: center; background: var(--frame); border: 1px solid var(--rule); padding: 8px; }
+.req img { width: 32px; height: 32px; border-radius: 50%; }
+.req .who { min-width: 0; display: grid; gap: 2px; }
+.req .who b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.req .who small { font-family: var(--f-mono); font-size: 11px; color: var(--mute); overflow-wrap: anywhere; }
+.req .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+.req .st { font-family: var(--f-mono); font-size: 10px; font-weight: 600; padding: 1px 5px; background: var(--rule); }
+.req .st.pending { background: var(--orange); color: var(--ink); }
+.req .st.approved { background: var(--lime); color: var(--ink); }
+@media (max-width: 480px) { .req { grid-template-columns: 32px minmax(0, 1fr); } .req .acts { grid-column: 1 / -1; justify-content: flex-start; } }
+
 .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--lime); color: var(--ink); border: 2px solid var(--ink); padding: 7px 14px; font-family: var(--f-mono); font-size: 12px; font-weight: 600; z-index: 10; }
 
 /* ---------- responsive ---------- */
@@ -295,6 +328,26 @@ dialog::backdrop { background: rgba(10, 10, 12, .75); }
 @media (max-width: 380px) { .squads { grid-template-columns: minmax(0, 1fr); } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
+
+<section class="gate" id="gate" aria-labelledby="gate-h">
+  <div class="gate-card">
+    <div class="dlg-head">
+      <h2 id="gate-h"><svg viewBox="0 0 18 18" aria-hidden="true"><rect x="3" y="8" width="12" height="9" fill="#111214"/><path d="M5.5 8 V5.5 a3.5 3.5 0 0 1 7 0 V8" stroke="#111214" stroke-width="2.2" fill="none"/></svg>ต้องได้รับสิทธิ์ก่อนเข้าดู</h2>
+      <span class="code">PARTY ROSTER 80</span>
+    </div>
+    <div class="gate-body">
+      <p class="gate-msg" id="gate-msg" role="status">กำลังตรวจสอบสิทธิ์…</p>
+      <form class="gate-form" id="req-form" autocomplete="off" hidden>
+        <div class="field">
+          <label for="req-note">ชื่อในเกม / ข้อความถึงเจ้าของกิลด์</label>
+          <input type="text" id="req-note" maxlength="80" placeholder="เช่น Zoomyyz · ตี้ล่าง">
+        </div>
+        <button class="btn lime" type="submit" id="req-go">ขอสิทธิ์เข้าถึง</button>
+      </form>
+      <div class="gate-actions" id="gate-actions"></div>
+    </div>
+  </div>
+</section>
 
 <div class="wrap">
   <header class="console">
@@ -322,6 +375,7 @@ dialog::backdrop { background: rgba(10, 10, 12, .75); }
         <button class="btn orange" id="auto-btn" type="button" title="วางรายชื่อ TEAM 1 / TEAM 2 แล้วจัดลงตารางอัตโนมัติ">ออโต้จัดตี้</button>
         <button class="btn" id="copy-btn" type="button">คัดลอกรายชื่อ</button>
         <button class="btn" id="share-btn" type="button" title="ส่งลิงก์หน้านี้ให้คนอื่น">แชร์เว็บ</button>
+        <button class="btn" id="req-btn" type="button" title="คำขอสิทธิ์เข้าถึงหน้านี้" hidden>คำขอสิทธิ์ <span class="badge" id="req-n" hidden>0</span></button>
         <button class="btn" id="mute-btn" type="button" aria-pressed="false">เสียง: เปิด</button>
         <label class="vol" title="ระดับเสียง"><span>VOL</span><input id="vol" type="range" min="0" max="100" step="5" value="100" aria-label="ระดับเสียง"><output id="vol-v">100</output></label>
         <button class="btn lime" id="cap-btn" type="button">โหมดแคปจอ</button>
@@ -425,131 +479,30 @@ dialog::backdrop { background: rgba(10, 10, 12, .75); }
     <div class="dlg-body">
       <div class="field">
         <label for="auto-txt">รายชื่อ (ฟอร์แมต TEAM → Party N → 1. อาชีพ - ชื่อ)</label>
-        <textarea id="auto-txt" spellcheck="false">⚔️ Guild TEAM 1 — Elite (ตี้บน)
-Party 1
-1. Biochemist - Lastsearesort
-2. Summoner - howard
-3. Biochemist - PLUSSSSS
-4. High Priest - TESTAROSSA
-5. Minstrel - Xoxo
-
-Party 2
-1. Gunslinger - AKIMBO
-2. Summoner - ISWA
-3. Biochemist - HONGTESKY
-4. Minstrel - Staydown
-5. High Priest - Roxy
-
-Party 3
-1. Gunslinger - NUTTY
-2. Stalker - NONGGUN
-3. Biochemist - KhunTako
-4. Gypsy - ShLx
-5. High Priest - sunnyderkrub
-
-Party 4
-1. Gunslinger - MooMoo
-2. Summoner - จุ๊ฟโม๊ะ
-3. Biochemist - chickka
-4. Minstrel - Apricot
-5. High Priest - Wlc2life
-
-Party 5
-1. High Wizard - Duckie7
-2. Summoner - Kxyz
-3. Biochemist - Fxnz
-4. Minstrel - Rnys
-5. High Priest - Stxs
-
-Party 6
-1. High Wizard - BlizKiT
-2. Biochemist - Hoh
-3. Summoner - Tokyo
-4. Gypsy - Bambibi
-5. High Priest - Cookiealmonz
-
-Party 7
-1. High Wizard - Twinpiece
-2. Summoner - Doggydose
-3. Biochemist - บุญเพิ่มโชว่
-4. Gypsy - Ggsix7
-5. High Priest - KiyotakaKungz
-
-Party 8
-1. Gunslinger - eieizahaha
-2. High Wizard - KridKrid
-3. Biochemist - หมีดำ
-4. Minstrel - MaTeng
-5. High Priest - Only
-
-🛡️ Guild TEAM 2 — ตี้ล่าง(RUN 2)
-Party 1 (ทีมบุก)
-1. Summoner - MAKI
-2. Summoner - 4strO
-3. Lord Knight - BabyOatzii
-4. Minstrel - PoOkmOo
-5. High Priest - SixSeven
-
-Party 2 (ทีมบุก)
-1. High Wizard - 9OCT
-2. Biochemist - 44Savage
-3. Summoner - น้องกุ้งออฉัน888
-4. Gypsy - KangKeawWan
-5. High Priest - Mohamed
-
-Party 3 (ทีมบุก)
-1. High Priest - จีนเจา
-2. Stalker - Piamelte
-3. Sniper - LookItsNotThat
-4. Gypsy - Kyoko
-5. Biochemist - AIGUN
-
-Party 4 (ทีมบุก)
-1. Summoner - ChaBuuuuu
-2. Biochemist - สมต้อย
-3. High Wizard - Mayumii
-4. Gypsy - kenji1980
-5. High Priest - xNANAx
-
-Party 5 (วังแยก)
-1. Biochemist - NOPNOP
-2. High Priest - JAEJAE
-3. Gypsy - JIBJIB
-4. Sniper - NETNET
-5. High Wizard - NUTNUT
-
-Party6 (วังแยก)
-1. Gunslinger - Realityx
-2. Summoner - 123xl
-3. Biochemist - Butioz
-4. Minstrel - Rietyx
-5. High Priest - MHEECNX
-
-Party 7 (ทีมบุก)
-1. Biochemist - บุ๊ไปคอมT047
-2. High Wizard - Zoomyyz
-3. Scholar - น้องเมษ888
-4. Gypsy - AMBER
-5. High Priest - ZA091
-
-Party 8 (ทีมบุก)
-1. Summoner - CHONCHON
-2. Biochemist - shonshon
-3. Scholar - ShonChon
-4. Gypsy - Bejestk
-5. High Priest - Bebestk</textarea>
+        <textarea id="auto-txt" spellcheck="false" placeholder="⚔️ Guild TEAM 1&#10;Party 1&#10;1. Biochemist - ชื่อ&#10;…"></textarea>
         <p class="hint">ตี้ที่มีในข้อความจะถูกแทนที่ทั้งฝั่ง · ชื่อที่สะกดใกล้เคียงรายชื่อกิลด์จะจับคู่ให้อัตโนมัติ (ได้ UID ด้วย) · “Summoner” เฉยๆ = ใช้อาชีพในรายชื่อกิลด์ ถ้าไม่มีจะเป็น M/Summoner</p>
       </div>
       <p class="auto-msg" id="auto-msg" role="status"></p>
     </div>
     <div class="dlg-foot">
-      <button class="btn ghost" type="button" id="auto-reset">คืนรายชื่อเริ่มต้น</button>
+      <button class="btn ghost" type="button" id="auto-reset">ใช้รายชื่อที่บันทึกไว้</button>
       <div class="r">
         <button class="btn" type="button" id="auto-cancel">ปิด</button>
         <button class="btn lime" type="submit" id="auto-go">จัดตี้เลย</button>
       </div>
     </div>
   </form>
+</dialog>
+
+<dialog id="req-dlg" aria-labelledby="req-title">
+  <div class="dlg-head">
+    <h3 id="req-title">คำขอสิทธิ์เข้าถึง</h3>
+    <button type="button" class="pt-x" id="req-x" aria-label="ปิด">×</button>
+  </div>
+  <div class="dlg-body">
+    <p class="pt-rule">อนุมัติ = เปิดเมนู Share ของหน้านี้ แล้วตั้งคนนั้นเป็น Editor · จากนั้นกด “อนุมัติแล้ว” เพื่อแจ้งเขาให้รีเฟรช</p>
+    <div class="req-list" id="req-list"></div>
+  </div>
 </dialog>
 
 <div class="toast" id="toast" hidden></div>
@@ -1260,22 +1213,27 @@ async function autoFill(text) {
   render();
   return { placed: Object.keys(next).length, unknown, dup };
 }
+/* the last list used is kept in db (config/autofill), not in the page source, so only approved viewers can read it */
+let autofillText = "";
 const autoDlg = $("#auto-dlg");
 $("#auto-btn").onclick = () => {
   if (!canWrite) { toast("คุณมีสิทธิ์ดูอย่างเดียว"); return; }
   $("#auto-msg").textContent = ""; $("#auto-msg").classList.remove("warn");
+  if (!$("#auto-txt").value) $("#auto-txt").value = autofillText;
   autoDlg.showModal();
 };
 $("#auto-cancel").onclick = () => autoDlg.close();
-$("#auto-reset").onclick = () => { $("#auto-txt").value = $("#auto-txt").defaultValue; };
+$("#auto-reset").onclick = () => { $("#auto-txt").value = autofillText; };
 $("#auto-form").addEventListener("submit", async e => {
   e.preventDefault();
   const msg = $("#auto-msg"), go = $("#auto-go");
   msg.classList.remove("warn");
   try {
     go.disabled = true; msg.textContent = "กำลังจัดตี้…";
-    const { placed, unknown, dup } = await autoFill($("#auto-txt").value);
+    const text = $("#auto-txt").value;
+    const { placed, unknown, dup } = await autoFill(text);
     sfx("full");
+    if (mode === "live" && text !== autofillText) { autofillText = text; db.doc("config/autofill").set({ text }).catch(() => {}); }
     const notes = [];
     if (unknown.length) notes.push(`ไม่พบในรายชื่อกิลด์ ${unknown.length} คน (ใส่ตามที่พิมพ์): ${unknown.join(", ")}`);
     if (dup.length) notes.push(`ชื่อซ้ำ ข้ามไป: ${dup.join(", ")}`);
@@ -1287,39 +1245,119 @@ $("#auto-form").addEventListener("submit", async e => {
   } finally { go.disabled = false; }
 });
 
+/* ---------- access gate ----------
+   The db rules declared at publish let only Editors (and the owner) read or write the roster;
+   everyone else can only write their own request at requests/<their id>. Approving someone =
+   setting them to Editor in the artifact's Share menu — the page itself cannot grant access. */
+let user = null, myId = null;
+const fmtTime = iso => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("th-TH", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); };
+const RELOAD_BTN = `<button class="btn lime" type="button" data-act="reload">รีเฟรช</button>`;
+function showGate(msg, { warn = false, form = false, actions = "" } = {}) {
+  $("#gate-msg").textContent = msg; $("#gate-msg").classList.toggle("warn", warn);
+  $("#req-form").hidden = !form;
+  $("#gate-actions").innerHTML = actions;
+}
+function watchOwnRequest() {
+  db.doc("requests/" + myId).onSnapshot(s => {
+    const r = s.exists ? s.data() : null;
+    if (!r) showGate("หน้าจัดตี้นี้ดูได้เฉพาะคนที่ได้รับอนุมัติ · ส่งคำขอแล้วรอเจ้าของกิลด์อนุมัติ", { form: true });
+    else if (r.status === "approved") showGate("ได้รับอนุมัติแล้ว · กดรีเฟรชเพื่อเข้าหน้าจัดตี้ (ถ้ายังเข้าไม่ได้ ให้แจ้งเจ้าของกิลด์ตั้งคุณเป็น Editor ในเมนู Share)", { actions: RELOAD_BTN });
+    else if (r.status === "rejected") showGate("คำขอของคุณถูกปฏิเสธ · ส่งคำขอใหม่ได้ถ้าต้องการ", { warn: true, form: true });
+    else showGate(`ส่งคำขอแล้ว${r.at ? " เมื่อ " + fmtTime(r.at) : ""} · รอเจ้าของกิลด์อนุมัติ`, { actions: `<button class="btn ghost" type="button" data-act="cancel">ยกเลิกคำขอ</button>` });
+  }, () => showGate("เชื่อมต่อไม่ได้ · ลองรีเฟรชหน้าอีกครั้ง", { warn: true, actions: RELOAD_BTN }));
+}
+$("#req-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const b = $("#req-go"); b.disabled = true;
+  try {
+    await db.doc("requests/" + myId).set({ status: "pending", note: $("#req-note").value.trim().slice(0, 80), at: new Date().toISOString() });
+    sfx("drop");
+  } catch (err) {
+    const viewOnly = err && err.code === "invalid_argument";
+    showGate(viewOnly ? "บัญชีของคุณส่งคำขอในหน้านี้ไม่ได้ (สิทธิ์ดูอย่างเดียว) · ติดต่อเจ้าของกิลด์โดยตรง" : "ส่งคำขอไม่สำเร็จ ลองอีกครั้ง", { warn: true, form: !viewOnly });
+  } finally { b.disabled = false; }
+});
+$("#gate-actions").addEventListener("click", async e => {
+  const a = e.target.closest("[data-act]"); if (!a) return;
+  if (a.dataset.act === "reload") location.reload();
+  else if (a.dataset.act === "cancel") { try { await db.doc("requests/" + myId).delete(); } catch (err) { toast("ยกเลิกไม่สำเร็จ ลองอีกครั้ง"); } }
+});
+
+/* requests panel for approved viewers */
+let requests = [];
+const reqDlg = $("#req-dlg");
+const REQ_ST = { pending: "รออนุมัติ", approved: "อนุมัติแล้ว", rejected: "ปฏิเสธแล้ว" };
+const reqState = r => (r.status === "approved" || r.status === "rejected" ? r.status : "pending");
+function watchRequests() {
+  db.collection("requests").onSnapshot(snap => {
+    requests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const n = requests.filter(r => reqState(r) === "pending").length;
+    $("#req-btn").hidden = false; $("#req-n").textContent = n; $("#req-n").hidden = !n;
+    if (reqDlg.open) renderRequests();
+  }, () => {});
+}
+async function renderRequests() {
+  const list = [...requests].sort((a, b) => (reqState(a) === "pending" ? 0 : 1) - (reqState(b) === "pending" ? 0 : 1) || String(b.at || "").localeCompare(String(a.at || "")));
+  if (!list.length) { $("#req-list").innerHTML = `<p class="hint">ยังไม่มีคำขอ</p>`; return; }
+  const ps = await user.profiles(list.map(r => r.id));
+  $("#req-list").innerHTML = list.map(r => {
+    const p = ps[r.id] || {}, st = reqState(r);
+    return `<div class="req" data-id="${esc(r.id)}">
+      <img src="${esc(p.avatarUrl || "")}" alt="">
+      <div class="who"><b>${esc(p.name || "ไม่ทราบชื่อ")}</b><small>${p.email ? esc(p.email) + " · " : ""}${esc(fmtTime(r.at))}</small>${r.note ? `<small>“${esc(r.note)}”</small>` : ""}</div>
+      <div class="acts"><span class="st ${st}">${REQ_ST[st]}</span>${st !== "approved" ? `<button class="btn lime" type="button" data-act="approved">อนุมัติแล้ว</button>` : ""}${st !== "rejected" ? `<button class="btn" type="button" data-act="rejected">ปฏิเสธ</button>` : ""}<button class="btn ghost" type="button" data-act="delete">ลบ</button></div>
+    </div>`;
+  }).join("");
+}
+$("#req-btn").onclick = () => { renderRequests(); reqDlg.showModal(); };
+$("#req-x").onclick = () => reqDlg.close();
+reqDlg.addEventListener("click", e => { if (e.target === reqDlg) reqDlg.close(); });
+$("#req-list").addEventListener("click", async e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const act = b.dataset.act, ref = db.doc("requests/" + b.closest(".req").dataset.id);
+  b.disabled = true;
+  try {
+    if (act === "delete") await ref.delete();
+    else await ref.update({ status: act, decidedAt: new Date().toISOString() });
+    toast(act === "approved" ? "บันทึกแล้ว · อย่าลืมตั้งคนนี้เป็น Editor ในเมนู Share" : act === "rejected" ? "ปฏิเสธคำขอแล้ว" : "ลบคำขอแล้ว");
+  } catch (err) { toast("บันทึกไม่สำเร็จ ลองอีกครั้ง"); b.disabled = false; }
+});
+
 /* ---------- boot ---------- */
-loadLocal();
 render();
-try { if (localStorage.getItem(LS_KEY + ":cap")) setCapture(true); } catch (e) {}
-setStatus(false, "ออฟไลน์ · บันทึกเฉพาะเครื่องนี้");
-function loadLocalMembers() {
-  let list = [];
-  try { list = JSON.parse(localStorage.getItem(LS_MEMBERS) || "[]"); } catch (e) {}
-  setMembers(list);
-  try { const at = localStorage.getItem(LS_MEMBERS + ":at"); if (at) showSyncedAt(at); } catch (e) {}
-  /* first visit with no saved list: fill it from the queue automatically */
-  if (!members.length) $("#sync-btn").click();
+async function startLive() {
+  document.body.classList.add("unlocked");
+  try { if (localStorage.getItem(LS_KEY + ":cap")) setCapture(true); } catch (e) {}
+  col = db.collection("slots");
+  db.doc("config/members").onSnapshot(s => {
+    const v = s.exists ? s.data() : null;
+    membersMeta = {}; if (v) for (const k in v) if (k !== "list") membersMeta[k] = v[k];
+    if (v && v.syncedAt) showSyncedAt(v.syncedAt);
+    setMembers(v ? v.list : []);
+  }, () => {});
+  db.doc("config/autofill").onSnapshot(s => { autofillText = s.exists ? String(s.data().text || "") : ""; }, () => {});
+  try { const w = await user.can("data.write"); if (w === false) canWrite = false; } catch (e) {}
+  col.onSnapshot(snap => {
+    const next = {};
+    snap.docs.forEach(d => { if (ALL_IDS.includes(d.id)) { const v = d.data(); if (occupied(v)) next[d.id] = { name: String(v.name || ""), job: String(v.job || ""), ...(v.uid ? { uid: String(v.uid) } : {}) }; } });
+    slots = next; mode = "live";
+    setStatus(true, canWrite ? "ออนไลน์ · ทุกคนเห็นรายชื่อเดียวกัน" : "ออนไลน์ · ดูอย่างเดียว");
+    render();
+  }, () => { mode = "local"; loadLocal(); setStatus(false, "การเชื่อมต่อหลุด · บันทึกเฉพาะเครื่องนี้"); render(); });
+  watchRequests();
 }
 (async () => {
-  if (!window.claude || !claude.use) { loadLocalMembers(); return; }
+  /* outside claude.ai (e.g. GitHub Pages) there is no signed-in viewer to approve: point to the claude.ai page */
+  if (!window.claude || !claude.use) {
+    showGate("หน้านี้ต้องเปิดผ่านลิงก์ claude.ai และได้รับอนุมัติจากเจ้าของกิลด์ก่อน", { actions: `<a class="btn lime" href="${SHARE_URL}" target="_blank" rel="noopener">เปิดหน้าใน claude.ai</a>` });
+    return;
+  }
   try {
-    const [dbNs, user] = await Promise.all([claude.use("db"), claude.use("user")]);
-    if (!dbNs) { loadLocalMembers(); return; }
-    db = dbNs; col = db.collection("slots");
-    db.doc("config/members").onSnapshot(s => {
-      const v = s.exists ? s.data() : null;
-      membersMeta = {}; if (v) for (const k in v) if (k !== "list") membersMeta[k] = v[k];
-      if (v && v.syncedAt) showSyncedAt(v.syncedAt);
-      setMembers(v ? v.list : []);
-    }, () => {});
-    if (user) { try { const w = await user.can("data.write"); if (w === false) canWrite = false; } catch (e) {} }
-    col.onSnapshot(snap => {
-      const next = {};
-      snap.docs.forEach(d => { if (ALL_IDS.includes(d.id)) { const v = d.data(); if (occupied(v)) next[d.id] = { name: String(v.name || ""), job: String(v.job || ""), ...(v.uid ? { uid: String(v.uid) } : {}) }; } });
-      slots = next; mode = "live";
-      setStatus(true, canWrite ? "ออนไลน์ · ทุกคนเห็นรายชื่อเดียวกัน" : "ออนไลน์ · ดูอย่างเดียว");
-      render();
-    }, () => { mode = "local"; loadLocal(); setStatus(false, "การเชื่อมต่อหลุด · บันทึกเฉพาะเครื่องนี้"); render(); });
-  } catch (e) {}
+    [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+    myId = user ? await user.id() : null;
+    if (!db || !myId) { showGate("เข้าสู่ระบบ claude.ai ก่อน แล้วเปิดลิงก์นี้อีกครั้ง", { warn: true, actions: RELOAD_BTN }); return; }
+    if (await user.canEdit()) startLive();
+    else watchOwnRequest();
+  } catch (e) { showGate("ตรวจสอบสิทธิ์ไม่สำเร็จ · ลองรีเฟรชหน้า", { warn: true, actions: RELOAD_BTN }); }
 })();
 </script>

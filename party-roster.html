@@ -1,0 +1,1325 @@
+<title>Party Roster 80</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<style>
+/* Layout: tool-console — a dark frame holding two lime-capped party panels side by side, each a 4×2 grid of 5-slot squads, so all 80 slots fit one screenshot. */
+:root {
+  --frame: #1c1d21;
+  --panel: #26272c;
+  --panel-2: #303137;
+  --paper: #d6d6d2;
+  --paper-hi: #f2f2ee;
+  --lime: #d4f53c;
+  --orange: #ff4d1f;
+  --ink: #111214;
+  --light: #f1f1ec;
+  --mute: #8d8e94;
+  --rule: #3c3d44;
+  --f-display: "Archivo Black", "Chakra Petch", "IBM Plex Sans Thai", system-ui, sans-serif;
+  --f-thai-head: "Chakra Petch", "IBM Plex Sans Thai", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans Thai", "Chakra Petch", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--frame); color: var(--light); font-family: var(--f-body); font-size: 14px;
+  margin: 0; padding-inline: 16px; padding-block: 16px 40px;
+}
+.wrap { max-width: 1680px; margin: 0 auto; display: grid; gap: 12px; }
+button { font: inherit; color: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.mono { font-family: var(--f-mono); }
+
+/* ---------- top console bar ---------- */
+.console { display: grid; grid-template-columns: auto minmax(0, 1fr); background: var(--panel); border: 2px solid var(--ink); }
+.brand { background: var(--lime); color: var(--ink); padding: 10px 16px; display: grid; align-content: center; gap: 2px; border-right: 2px solid var(--ink); }
+.brand-mark { display: flex; align-items: center; gap: 8px; }
+.brand-mark svg { width: 22px; height: 22px; flex: none; }
+.brand h1 { margin: 0; font-family: var(--f-display); font-size: 28px; line-height: .9; letter-spacing: -.01em; text-transform: uppercase; }
+.brand .sub { font-family: var(--f-mono); font-size: 10px; letter-spacing: .14em; font-weight: 600; }
+.console-main { display: flex; flex-wrap: wrap; align-items: stretch; min-width: 0; }
+.readouts { display: flex; flex-wrap: wrap; }
+.readout { padding: 8px 16px; border-right: 1px solid var(--rule); display: grid; align-content: center; gap: 0; min-width: 92px; }
+.readout .k { font-family: var(--f-mono); font-size: 10px; letter-spacing: .12em; color: var(--mute); text-transform: uppercase; }
+.readout .v { font-family: var(--f-display); font-size: 22px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.readout .v small { font-family: var(--f-mono); font-size: 12px; color: var(--mute); }
+.readout.hot .v { color: var(--lime); }
+.tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; flex: 1 1 380px; justify-content: flex-end; }
+.search {
+  flex: 1 1 180px; min-width: 0; max-width: 300px; background: var(--frame); border: 1px solid var(--rule);
+  padding: 8px 10px; color: var(--light); font-family: var(--f-body); font-size: 13px;
+}
+.btn {
+  border: 2px solid var(--ink); background: var(--panel-2); padding: 7px 12px; cursor: pointer;
+  font-family: var(--f-mono); font-size: 12px; font-weight: 600; letter-spacing: .04em; display: inline-flex; gap: 8px; align-items: center;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+.btn:hover { background: var(--rule); }
+.btn:active { transform: translate(2px, 2px); box-shadow: none; }
+.btn.lime { background: var(--lime); color: var(--ink); }
+.btn.lime:hover { background: var(--paper-hi); }
+.btn.orange { background: var(--orange); color: var(--ink); }
+.btn.ghost { background: transparent; color: var(--orange); border-color: var(--orange); box-shadow: none; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+.vol { display: inline-flex; align-items: center; gap: 6px; font-family: var(--f-mono); font-size: 11px; color: var(--mute); }
+.vol input { width: 90px; accent-color: var(--lime); cursor: pointer; }
+.vol output { min-width: 3ch; text-align: right; color: var(--light); }
+.vol.off { opacity: .45; }
+.status { font-family: var(--f-mono); font-size: 11px; color: var(--mute); display: inline-flex; align-items: center; gap: 6px; }
+.status i { width: 8px; height: 8px; background: var(--mute); display: inline-block; }
+.status.live i { background: var(--lime); }
+
+/* ---------- party panels ---------- */
+.boards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.party { background: var(--panel); border: 2px solid var(--ink); min-width: 0; display: grid; align-content: start; }
+.party-head { background: var(--lime); color: var(--ink); display: flex; align-items: stretch; justify-content: space-between; border-bottom: 2px solid var(--ink); }
+.ph-left { display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 0; min-width: 0; }
+.ph-code { background: var(--ink); color: var(--light); font-family: var(--f-display); font-size: 26px; line-height: 1; padding: 8px 12px; align-self: stretch; display: grid; place-items: center; }
+.party-head h2 { margin: 0; font-family: var(--f-thai-head); font-weight: 700; font-size: 24px; line-height: 1; }
+.ph-en { font-family: var(--f-mono); font-size: 10px; font-weight: 600; letter-spacing: .14em; }
+.ph-right { display: flex; align-items: center; gap: 10px; padding: 6px 12px; }
+.ph-count { font-family: var(--f-display); font-size: 24px; line-height: 1; font-variant-numeric: tabular-nums; }
+.ph-count small { font-family: var(--f-mono); font-size: 12px; font-weight: 600; }
+.ph-bar { width: 80px; height: 10px; border: 2px solid var(--ink); position: relative; background: var(--paper-hi); }
+.ph-bar i { position: absolute; inset: 0 auto 0 0; background: var(--ink); }
+.comp { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--rule); min-height: 34px; align-items: center; }
+.comp .note { font-family: var(--f-mono); font-size: 11px; color: var(--mute); }
+.chip { font-family: var(--f-mono); font-size: 11px; font-weight: 500; background: var(--frame); border: 1px solid var(--rule); padding: 2px 6px; display: inline-flex; gap: 5px; align-items: center; white-space: nowrap; }
+.chip b { color: var(--lime); font-weight: 600; }
+
+.squads { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; padding: 8px; }
+.squad { background: var(--paper); color: var(--ink); border: 2px solid var(--ink); min-width: 0; display: grid; align-content: start; }
+.sq-head { display: flex; align-items: center; justify-content: space-between; padding: 3px 6px; border-bottom: 2px solid var(--ink); background: var(--paper); }
+.sq-head .pt {
+  font-family: var(--f-display); font-size: 13px; letter-spacing: .02em; background: none; border: 0; color: inherit;
+  padding: 1px 4px; margin: -1px -4px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+}
+.sq-head .pt svg { width: 10px; height: 10px; fill: currentColor; opacity: .55; }
+.sq-head .pt:hover { background: var(--ink); color: var(--lime); }
+.sq-head .pt:hover svg { opacity: 1; }
+.squad.full .sq-head .pt:hover { background: var(--lime); color: var(--ink); }
+body.capture .sq-head .pt svg { display: none; }
+.sq-head .n { font-family: var(--f-mono); font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.squad.full .sq-head { background: var(--ink); color: var(--lime); }
+.rows { display: grid; }
+.slot {
+  display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; gap: 5px;
+  background: transparent; border: 0; border-top: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+  padding: 3px 5px 3px 4px; min-height: 26px; cursor: pointer; text-align: left; width: 100%; color: var(--ink);
+}
+.rows .slot:first-child { border-top: 0; }
+.slot:hover { background: var(--paper-hi); }
+.slot:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
+.slot .no { font-family: var(--f-mono); font-size: 10px; color: color-mix(in srgb, var(--ink) 55%, transparent); font-variant-numeric: tabular-nums; }
+.slot .name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.slot.empty .name, .slot .name.ph { font-weight: 400; color: color-mix(in srgb, var(--ink) 40%, transparent); font-family: var(--f-mono); font-size: 11px; }
+.slot .name.jobname { display: inline-flex; align-items: center; gap: 6px; }
+.slot .name.jobname .g { color: var(--ink); }
+.view-seg { display: inline-flex; border: 2px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); }
+.view-seg button { border: 0; border-left: 1px solid var(--ink); background: var(--panel-2); padding: 7px 10px; cursor: pointer; font-family: var(--f-mono); font-size: 12px; font-weight: 600; }
+.view-seg button:first-child { border-left: 0; }
+.view-seg button:hover { background: var(--rule); }
+.view-seg button[aria-pressed="true"] { background: var(--lime); color: var(--ink); }
+.slot.filled { background: var(--paper-hi); }
+/* job view: dark neon — near-black squads, each job a glowing neon gradient */
+body.view-job .squad { --void: #0d0c12; background: var(--void); border-color: #000; }
+body.view-job .sq-head { background: #17151f; color: var(--light); border-bottom-color: #000; }
+body.view-job .squad.full .sq-head { background: #000; }
+body.view-job .slot { color: var(--light); border-top-color: rgba(255, 255, 255, .06); }
+body.view-job .slot .no { color: rgba(255, 255, 255, .38); }
+body.view-job .slot.empty .name { color: rgba(255, 255, 255, .3); }
+body.view-job .slot:hover { background: #1c1a26; }
+/* job view: each job fills its row with its own full-strength two-tone gradient; the "to" color is also the left stripe */
+.slot.jc {
+  background: linear-gradient(90deg, var(--jc) 0 30%, var(--jc2));
+  box-shadow: inset 5px 0 0 var(--jc2), inset 6px 0 0 var(--ink);
+}
+body.view-job .slot.jc { border-top-color: #000; }
+body.view-job .slot.jc:hover { background: linear-gradient(90deg, var(--jc) 0 30%, var(--jc2)); filter: brightness(1.12); }
+body.view-job .slot.jc .no { color: color-mix(in srgb, var(--jfg) 60%, transparent); padding-left: 3px; }
+.slot.jc .name.jobname { color: var(--jfg); font-weight: 700; }
+.slot.jc .name.jobname .g { color: var(--jfg); background: none; }
+.slot.jc .name.jobname .g.r-front, .slot.jc .name.jobname .g.r-support { background: currentColor; }
+.jobs label .g.jc { color: var(--jc); background: linear-gradient(135deg, var(--jc), var(--jc2)); }
+.tag { font-family: var(--f-mono); font-size: 10px; font-weight: 600; background: var(--ink); color: var(--lime); padding: 2px 4px; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.tag.r-support { background: var(--orange); color: var(--ink); }
+/* per-job two-tone gradient tag (palette from the screenshot) so every job reads differently at a glance */
+.tag.jc { background: linear-gradient(100deg, var(--jc) 0 40%, var(--jc2)); color: var(--jfg, var(--ink)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 35%, transparent); }
+.chip .g.jc { color: var(--jc); background: linear-gradient(135deg, var(--jc), var(--jc2)); }
+.slot.dim { opacity: .25; }
+.slot.hit { background: var(--lime); }
+.slot.drag-over { background: var(--orange); }
+.slot.dragging { opacity: .4; }
+.party.readonly .slot { cursor: default; }
+
+/* role glyphs */
+.g { width: 8px; height: 8px; display: inline-block; border: 1.5px solid currentColor; flex: none; }
+.g.r-front { background: currentColor; }
+.g.r-magic { border-radius: 50%; }
+.g.r-support { border-radius: 50%; background: currentColor; }
+.g.r-range { transform: rotate(45deg); width: 7px; height: 7px; }
+.g.r-craft { border-style: dashed; }
+.g.r-summon { border-radius: 1px 50% 1px 50%; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-family: var(--f-mono); font-size: 11px; color: var(--mute); align-items: center; padding-inline: 2px; }
+.legend span { display: inline-flex; gap: 6px; align-items: center; }
+.legend .sw { background: var(--orange); color: var(--ink); padding: 1px 4px; font-weight: 600; }
+
+/* ---------- unassigned pool ---------- */
+.pool { background: var(--panel); border: 2px solid var(--ink); }
+.pool-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid var(--rule); }
+.pool-head h2 { margin: 0; font-family: var(--f-thai-head); font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.pool-head h2 span { background: var(--lime); color: var(--ink); font-family: var(--f-mono); font-size: 12px; padding: 1px 6px; }
+.pool-src { font-size: 11px; color: var(--mute); }
+.pool-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.pool-list { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px; max-height: 150px; overflow-y: auto; }
+.pool-list .note { font-family: var(--f-mono); font-size: 11px; color: var(--mute); }
+.member { border: 1px solid var(--rule); background: var(--frame); display: inline-flex; align-items: stretch; font-size: 13px; }
+.member .pick { background: transparent; border: 0; padding: 4px 9px; cursor: grab; display: inline-flex; gap: 7px; align-items: center; }
+.member .pick:active { cursor: grabbing; }
+.member .pick[disabled] { cursor: default; }
+.member small { font-family: var(--f-mono); font-size: 10px; color: var(--mute); }
+.member .tag { font-size: 9px; padding: 1px 3px; }
+.member:hover { border-color: var(--lime); }
+.member:hover .pick { color: var(--lime); }
+.member.added { border-style: dashed; }
+.member .rm { background: transparent; border: 0; border-left: 1px solid var(--rule); color: var(--mute); padding: 0 7px; cursor: pointer; font-family: var(--f-mono); }
+.member .rm:hover { color: var(--orange); }
+.member.dragging { opacity: .4; }
+.pool.drop-ok { border-color: var(--orange); }
+.pool.drop-ok .pool-list { background: color-mix(in srgb, var(--orange) 12%, transparent); }
+.add-form { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+.add-form input, .add-form select { background: var(--frame); border: 1px solid var(--rule); color: var(--light); padding: 7px 10px; font-family: var(--f-body); font-size: 13px; min-width: 0; }
+.add-form input { flex: 1 1 200px; max-width: 280px; }
+.add-form select { flex: 0 1 190px; }
+.add-hint { font-family: var(--f-mono); font-size: 11px; color: var(--mute); flex: 1 1 260px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 760px) { .add-form input { max-width: none; } }
+
+/* ---------- capture mode ---------- */
+.capture-only { display: none; }
+body.capture .no-capture { display: none !important; }
+body.capture .capture-only { display: flex; }
+body.capture .wrap { max-width: none; }
+.cap-stamp { font-family: var(--f-mono); font-size: 11px; color: var(--ink); padding: 0 14px; align-items: center; gap: 12px; margin-left: auto; font-weight: 600; letter-spacing: .06em; }
+.cap-exit {
+  position: fixed; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 5;
+  opacity: .35; transition: opacity .15s;
+}
+.cap-exit:hover, .cap-exit:focus-visible { opacity: 1; }
+
+/* ---------- editor dialog ---------- */
+dialog { border: 2px solid var(--ink); background: var(--panel); color: var(--light); padding: 0; width: min(580px, calc(100vw - 32px)); max-height: calc(100vh - 32px); box-shadow: 6px 6px 0 var(--ink); }
+dialog::backdrop { background: rgba(10, 10, 12, .75); }
+.dlg-head { background: var(--lime); color: var(--ink); padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 2px solid var(--ink); }
+.dlg-head h3 { margin: 0; font-family: var(--f-thai-head); font-size: 20px; font-weight: 700; }
+.dlg-head .code { background: var(--ink); color: var(--light); font-family: var(--f-mono); font-size: 11px; padding: 3px 8px; }
+.dlg-body { padding: 16px; display: grid; gap: 14px; overflow: auto; }
+.field { display: grid; gap: 6px; }
+.field label, .field .lbl { font-family: var(--f-mono); font-size: 11px; font-weight: 600; letter-spacing: .12em; color: var(--mute); text-transform: uppercase; }
+.field input[type=text], .field select { background: var(--frame); border: 1px solid var(--rule); color: var(--light); padding: 9px 11px; font-family: var(--f-body); font-size: 15px; width: 100%; }
+.jobs { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 5px; }
+.jobs label { display: flex; align-items: center; gap: 8px; border: 1px solid var(--rule); background: var(--frame); padding: 7px 9px; cursor: pointer; font-size: 13px; text-transform: none; letter-spacing: 0; font-family: var(--f-body); font-weight: 400; color: var(--light); }
+.jobs input { position: absolute; opacity: 0; pointer-events: none; }
+.jobs label:has(input:checked) { background: var(--lime); color: var(--ink); border-color: var(--ink); font-weight: 600; }
+.jobs label:has(input:focus-visible) { outline: 2px solid var(--orange); outline-offset: 1px; }
+.hint { font-size: 12px; color: var(--mute); margin: 0; min-height: 1em; }
+.hint.warn { color: var(--orange); }
+.err { color: var(--orange); font-size: 13px; min-height: 1em; font-weight: 600; }
+.dlg-foot { padding: 12px 16px; border-top: 1px solid var(--rule); display: flex; gap: 8px; flex-wrap: wrap; justify-content: space-between; }
+.dlg-foot .r { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ---------- PT score popup ---------- */
+#pt-dlg { width: min(470px, calc(100vw - 32px)); }
+#pt-dlg::backdrop { background: rgba(10, 10, 12, .45); }
+#pt-dlg .dlg-head { padding: 8px 8px 8px 14px; }
+#pt-dlg .dlg-head h3 { font-size: 18px; }
+.pt-x { background: var(--ink); color: var(--light); border: 0; width: 28px; height: 28px; cursor: pointer; font-family: var(--f-mono); font-size: 16px; line-height: 1; }
+.pt-x:hover { background: var(--orange); color: var(--ink); }
+.pt-body { padding: 12px 14px 14px; display: grid; gap: 12px; overflow: auto; }
+.pc { display: grid; gap: 5px; }
+.pc-row { display: grid; grid-template-columns: 76px minmax(0, 1fr) 46px; align-items: center; gap: 8px; }
+.pc-k { font-family: var(--f-mono); font-size: 11px; font-weight: 600; color: var(--mute); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+.pc-bar {
+  height: 16px; display: flex; background-color: var(--frame); border: 1px solid var(--rule);
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--rule) calc(20% - 1px) 20%);
+}
+.pc-bar i { background: var(--lime); border-right: 2px solid var(--panel); flex: none; }
+.pc-bar i:last-child { border-right: 0; }
+.pc-row.top .pc-k { color: var(--lime); }
+.pc-row.low .pc-bar i { background: var(--orange); }
+.pc-v { font-family: var(--f-display); font-size: 15px; text-align: right; font-variant-numeric: tabular-nums; }
+.pc-v small { font-family: var(--f-mono); font-size: 10px; color: var(--mute); }
+.pt-tbl { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+.pt-tbl th, .pt-tbl td { padding: 4px 2px; text-align: center; border-bottom: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
+.pt-tbl thead th { font-family: var(--f-mono); font-size: 10px; font-weight: 600; color: var(--mute); letter-spacing: .04em; }
+.pt-tbl .c-no { width: 22px; font-family: var(--f-mono); font-size: 10px; color: var(--mute); }
+.pt-tbl .c-who { text-align: left; width: auto; }
+.pt-tbl col.c-s { width: 34px; }
+.pt-tbl .who { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.pt-tbl .who .tag { flex: none; }
+.pt-tbl .who span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; font-weight: 600; }
+.pt-tbl .empty td, .pt-tbl .empty .who { color: var(--mute); font-family: var(--f-mono); font-size: 11px; font-weight: 400; }
+.pt-tbl td.s { font-family: var(--f-mono); font-weight: 600; }
+.pt-tbl td.s0 { color: var(--mute); }
+.pt-tbl td.s1 { background: color-mix(in srgb, var(--lime) 10%, transparent); }
+.pt-tbl td.s2 { background: color-mix(in srgb, var(--lime) 22%, transparent); }
+.pt-tbl td.s3 { background: color-mix(in srgb, var(--lime) 40%, transparent); }
+.pt-tbl td.s4 { background: color-mix(in srgb, var(--lime) 68%, transparent); color: var(--ink); }
+.pt-tbl td.s5 { background: var(--lime); color: var(--ink); }
+.pt-tbl tfoot th { font-family: var(--f-display); font-size: 13px; border-bottom: 0; padding-top: 6px; }
+.pt-tbl tfoot th.c-who { font-family: var(--f-mono); font-size: 11px; color: var(--mute); }
+.pt-rule { margin: 0; font-size: 12px; font-weight: 600; color: var(--ink); background: var(--orange); padding: 5px 8px; }
+.pt-note { font-family: var(--f-mono); font-size: 10px; color: var(--mute); margin: 0; }
+
+/* ---------- auto-fill dialog ---------- */
+#auto-dlg { width: min(640px, calc(100vw - 32px)); }
+#auto-txt { width: 100%; height: min(46vh, 420px); resize: vertical; background: var(--frame); border: 1px solid var(--rule); color: var(--light); padding: 9px 11px; font-family: var(--f-mono); font-size: 12px; line-height: 1.45; }
+.auto-msg { font-size: 12px; white-space: pre-wrap; margin: 0; min-height: 1em; color: var(--mute); }
+.auto-msg.warn { color: var(--orange); font-weight: 600; }
+
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--lime); color: var(--ink); border: 2px solid var(--ink); padding: 7px 14px; font-family: var(--f-mono); font-size: 12px; font-weight: 600; z-index: 10; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1280px) { .boards { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 760px) {
+  .squads { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .console { grid-template-columns: minmax(0, 1fr); }
+  .brand { border-right: 0; border-bottom: 2px solid var(--ink); }
+  .readout { min-width: 0; flex: 1 1 25%; padding: 6px 10px; }
+  .tools { justify-content: flex-start; }
+  .search { max-width: none; }
+  .ph-bar { display: none; }
+}
+@media (max-width: 380px) { .squads { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="console">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 22 22" aria-hidden="true"><path d="M3 3 L19 19 M19 3 L3 19" stroke="#111214" stroke-width="4" fill="none"/></svg>
+        <h1>Party<br>Roster</h1>
+      </div>
+      <span class="sub">2 × 40 · 16 PT × 5</span>
+    </div>
+    <div class="console-main">
+      <div class="readouts">
+        <div class="readout hot"><span class="k">Total</span><span class="v" id="r-total">0<small>/80</small></span></div>
+        <div class="readout"><span class="k">ตี้บน</span><span class="v" id="r-top">0<small>/40</small></span></div>
+        <div class="readout"><span class="k">ตี้ล่าง</span><span class="v" id="r-bot">0<small>/40</small></span></div>
+        <div class="readout"><span class="k">High Priest</span><span class="v" id="r-hp">0</span></div>
+      </div>
+      <div class="tools no-capture">
+        <input id="search" class="search" type="search" placeholder="ค้นหาชื่อ / อาชีพ" aria-label="ค้นหา">
+        <div class="view-seg" id="view-seg" role="group" aria-label="โหมดการแสดงผลในตี้">
+          <button type="button" data-view="job" aria-pressed="false" title="แสดงเฉพาะอาชีพ">อาชีพ</button>
+          <button type="button" data-view="name" aria-pressed="false" title="แสดงเฉพาะชื่อผู้เล่น">ชื่อ</button>
+          <button type="button" data-view="both" aria-pressed="true" title="แสดงอาชีพและชื่อผู้เล่น">อาชีพ+ชื่อ</button>
+        </div>
+        <button class="btn orange" id="auto-btn" type="button" title="วางรายชื่อ TEAM 1 / TEAM 2 แล้วจัดลงตารางอัตโนมัติ">ออโต้จัดตี้</button>
+        <button class="btn" id="copy-btn" type="button">คัดลอกรายชื่อ</button>
+        <button class="btn" id="share-btn" type="button" title="ส่งลิงก์หน้านี้ให้คนอื่น">แชร์เว็บ</button>
+        <button class="btn" id="mute-btn" type="button" aria-pressed="false">เสียง: เปิด</button>
+        <label class="vol" title="ระดับเสียง"><span>VOL</span><input id="vol" type="range" min="0" max="100" step="5" value="100" aria-label="ระดับเสียง"><output id="vol-v">100</output></label>
+        <button class="btn lime" id="cap-btn" type="button">โหมดแคปจอ</button>
+        <span class="status" id="status"><i></i><span>กำลังเชื่อมต่อ…</span></span>
+      </div>
+      <div class="cap-stamp capture-only" id="cap-stamp"></div>
+    </div>
+  </header>
+
+  <main class="boards">
+    <section class="party" id="board-top" data-side="top"></section>
+    <section class="party" id="board-bot" data-side="bot"></section>
+  </main>
+
+  <div class="legend">
+    <span><i class="g r-front"></i>แนวหน้า</span>
+    <span><i class="g r-magic"></i>เวท</span>
+    <span><i class="g r-support"></i>ซัพพอร์ต <span class="sw">ป้ายสีส้ม</span></span>
+    <span><i class="g r-range"></i>ระยะไกล</span>
+    <span><i class="g r-craft"></i>สายคราฟ</span>
+    <span><i class="g r-summon"></i>ซัมมอนเนอร์</span>
+  </div>
+
+  <section class="pool no-capture" aria-labelledby="pool-h">
+    <div class="pool-head">
+      <h2 id="pool-h">ยังไม่ได้จัดตี้ <span id="pool-count">0</span></h2>
+      <div class="pool-tools">
+        <span class="pool-src mono" id="pool-src">รายชื่อจาก Guild Auction Queue</span>
+        <button class="btn" type="button" id="sync-btn" title="ดึงรายชื่อล่าสุดจาก Guild Auction Queue">ดึงรายชื่อจากเว็บ</button>
+      </div>
+    </div>
+    <form class="add-form" id="add-form" autocomplete="off">
+      <label class="sr" for="add-name">ชื่อตัวละครใหม่</label>
+      <input type="text" id="add-name" maxlength="40" placeholder="เพิ่มชื่อตัวละคร">
+      <label class="sr" for="add-job">อาชีพ</label>
+      <select id="add-job"><option value="">อาชีพ (ไม่บังคับ)</option></select>
+      <button class="btn lime" type="submit" id="add-btn">+ เพิ่มชื่อ</button>
+      <span class="add-hint">ลากชื่อลงช่องในปาร์ตี้ได้เลย · ลากช่องกลับมาที่นี่เพื่อเอาออกจากตี้</span>
+    </form>
+    <div class="pool-list" id="pool-list"><span class="note">กำลังโหลดรายชื่อกิลด์…</span></div>
+  </section>
+</div>
+
+<button class="btn orange cap-exit capture-only" id="cap-exit" type="button">ออกจากโหมดแคป · Esc</button>
+
+<dialog id="dlg">
+  <form id="dlg-form" method="dialog">
+    <div class="dlg-head">
+      <h3 id="dlg-title">ตี้บน · ช่อง 01</h3>
+      <span class="code" id="dlg-code">TOP-01</span>
+    </div>
+    <div class="dlg-body">
+      <div class="field">
+        <label for="f-name">ชื่อผู้เล่น (เว้นว่างได้ ถ้าจะจองช่องไว้แค่อาชีพ)</label>
+        <input type="text" id="f-name" maxlength="40" autocomplete="off" list="member-list" placeholder="พิมพ์เพื่อค้นหาชื่อในกิลด์">
+        <datalist id="member-list"></datalist>
+        <p class="hint" id="f-name-hint"></p>
+      </div>
+      <div class="field">
+        <span class="lbl" id="jobs-lbl">อาชีพ</span>
+        <div class="jobs" id="f-jobs" role="radiogroup" aria-labelledby="jobs-lbl"></div>
+      </div>
+      <div class="field">
+        <label for="f-move">ย้ายไปช่อง (สลับกับคนในช่องนั้นถ้ามี)</label>
+        <select id="f-move"></select>
+      </div>
+      <div class="err" id="f-err" role="alert"></div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn ghost" type="button" id="f-clear">ล้างช่อง</button>
+      <div class="r">
+        <button class="btn" type="button" id="f-cancel">ยกเลิก</button>
+        <button class="btn lime" type="submit" id="f-save">บันทึก</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="pt-dlg" aria-labelledby="pt-title">
+  <div class="dlg-head">
+    <h3 id="pt-title">ตี้บน · PT.1</h3>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="code" id="pt-code">0/5</span>
+      <button type="button" class="pt-x" id="pt-x" aria-label="ปิด">×</button>
+    </div>
+  </div>
+  <div class="pt-body">
+    <div class="pc" id="pt-chart"></div>
+    <table class="pt-tbl" id="pt-tbl"></table>
+    <p class="pt-rule" id="pt-rule" hidden></p>
+    <p class="pt-note">คะแนนต่ออาชีพเต็ม 5 · แถบรวมทั้งตี้เต็ม 25 (เส้นแบ่งทุก 5) · ชื่อด้านสีเขียว = เด่นสุด · แถบสีส้ม = อ่อนสุด · ชี้ที่แถบเพื่อดูว่าใครให้คะแนน</p>
+  </div>
+</dialog>
+
+<dialog id="auto-dlg" aria-labelledby="auto-title">
+  <form id="auto-form" method="dialog">
+    <div class="dlg-head">
+      <h3 id="auto-title">ออโต้จัดตี้</h3>
+      <span class="code">TEAM 1 → ตี้บน · TEAM 2 → ตี้ล่าง</span>
+    </div>
+    <div class="dlg-body">
+      <div class="field">
+        <label for="auto-txt">รายชื่อ (ฟอร์แมต TEAM → Party N → 1. อาชีพ - ชื่อ)</label>
+        <textarea id="auto-txt" spellcheck="false">⚔️ Guild TEAM 1 — Elite (ตี้บน)
+Party 1
+1. Biochemist - Lastsearesort
+2. Summoner - howard
+3. Biochemist - PLUSSSSS
+4. High Priest - TESTAROSSA
+5. Minstrel - Xoxo
+
+Party 2
+1. Gunslinger - AKIMBO
+2. Summoner - ISWA
+3. Biochemist - HONGTESKY
+4. Minstrel - Staydown
+5. High Priest - Roxy
+
+Party 3
+1. Gunslinger - NUTTY
+2. Stalker - NONGGUN
+3. Biochemist - KhunTako
+4. Gypsy - ShLx
+5. High Priest - sunnyderkrub
+
+Party 4
+1. Gunslinger - MooMoo
+2. Summoner - จุ๊ฟโม๊ะ
+3. Biochemist - chickka
+4. Minstrel - Apricot
+5. High Priest - Wlc2life
+
+Party 5
+1. High Wizard - Duckie7
+2. Summoner - Kxyz
+3. Biochemist - Fxnz
+4. Minstrel - Rnys
+5. High Priest - Stxs
+
+Party 6
+1. High Wizard - BlizKiT
+2. Biochemist - Hoh
+3. Summoner - Tokyo
+4. Gypsy - Bambibi
+5. High Priest - Cookiealmonz
+
+Party 7
+1. High Wizard - Twinpiece
+2. Summoner - Doggydose
+3. Biochemist - บุญเพิ่มโชว่
+4. Gypsy - Ggsix7
+5. High Priest - KiyotakaKungz
+
+Party 8
+1. Gunslinger - eieizahaha
+2. High Wizard - KridKrid
+3. Biochemist - หมีดำ
+4. Minstrel - MaTeng
+5. High Priest - Only
+
+🛡️ Guild TEAM 2 — ตี้ล่าง(RUN 2)
+Party 1 (ทีมบุก)
+1. Summoner - MAKI
+2. Summoner - 4strO
+3. Lord Knight - BabyOatzii
+4. Minstrel - PoOkmOo
+5. High Priest - SixSeven
+
+Party 2 (ทีมบุก)
+1. High Wizard - 9OCT
+2. Biochemist - 44Savage
+3. Summoner - น้องกุ้งออฉัน888
+4. Gypsy - KangKeawWan
+5. High Priest - Mohamed
+
+Party 3 (ทีมบุก)
+1. High Priest - จีนเจา
+2. Stalker - Piamelte
+3. Sniper - LookItsNotThat
+4. Gypsy - Kyoko
+5. Biochemist - AIGUN
+
+Party 4 (ทีมบุก)
+1. Summoner - ChaBuuuuu
+2. Biochemist - สมต้อย
+3. High Wizard - Mayumii
+4. Gypsy - kenji1980
+5. High Priest - xNANAx
+
+Party 5 (วังแยก)
+1. Biochemist - NOPNOP
+2. High Priest - JAEJAE
+3. Gypsy - JIBJIB
+4. Sniper - NETNET
+5. High Wizard - NUTNUT
+
+Party6 (วังแยก)
+1. Gunslinger - Realityx
+2. Summoner - 123xl
+3. Biochemist - Butioz
+4. Minstrel - Rietyx
+5. High Priest - MHEECNX
+
+Party 7 (ทีมบุก)
+1. Biochemist - บุ๊ไปคอมT047
+2. High Wizard - Zoomyyz
+3. Scholar - น้องเมษ888
+4. Gypsy - AMBER
+5. High Priest - ZA091
+
+Party 8 (ทีมบุก)
+1. Summoner - CHONCHON
+2. Biochemist - shonshon
+3. Scholar - ShonChon
+4. Gypsy - Bejestk
+5. High Priest - Bebestk</textarea>
+        <p class="hint">ตี้ที่มีในข้อความจะถูกแทนที่ทั้งฝั่ง · ชื่อที่สะกดใกล้เคียงรายชื่อกิลด์จะจับคู่ให้อัตโนมัติ (ได้ UID ด้วย) · “Summoner” เฉยๆ = ใช้อาชีพในรายชื่อกิลด์ ถ้าไม่มีจะเป็น M/Summoner</p>
+      </div>
+      <p class="auto-msg" id="auto-msg" role="status"></p>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn ghost" type="button" id="auto-reset">คืนรายชื่อเริ่มต้น</button>
+      <div class="r">
+        <button class="btn" type="button" id="auto-cancel">ปิด</button>
+        <button class="btn lime" type="submit" id="auto-go">จัดตี้เลย</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* grad = per-job gradient [from, to] used in the "อาชีพ" view mode and the job picker.
+   Palette is the page's own (Screenshot 2026-10-07 181152.png): Lime #d4f53c, Orange #ff4d1f,
+   Amber #eaa12e (lime + orange mixed), Paper #f2f2ee, Grey #8d8e94. Each job is a unique ordered pair:
+   the "from" color is the left stripe, grouped by role (front = orange-led, magic/summon = lime-led, range = grey-led). */
+const C = {
+  L: "#d4f53c", O: "#ff4d1f", A: "#eaa12e", P: "#f2f2ee", G: "#8d8e94",
+  K: "#111214", D: "#303137", R: "#7c2c19" /* orange + ink */, V: "#697726" /* lime + ink */,
+};
+/* grad: [from, to, text]. The busiest jobs (HP, BIO, MSUM, MIN, GYP, HW, GS, STK, SNP, SCH)
+   get the most different pairs: each mixes a different hue with a light or dark end. */
+const JOBS = [
+  { id: "Lord Knight",      tag: "LK",   role: "front",   grad: [C.O, C.K, C.K] },
+  { id: "Paladin",          tag: "PAL",  role: "front",   grad: [C.P, C.G, C.K] },
+  { id: "High Wizard",      tag: "HW",   role: "magic",   grad: [C.K, C.L, C.P] },
+  { id: "Scholar",          tag: "SCH",  role: "magic",   grad: [C.D, C.P, C.P] },
+  { id: "Mastersmith",      tag: "MS",   role: "craft",   grad: [C.A, C.G, C.K] },
+  { id: "Biochemist",       tag: "BIO",  role: "craft",   grad: [C.L, C.P, C.K] },
+  { id: "High Priest",      tag: "HP",   role: "support", grad: [C.O, C.A, C.K] },
+  { id: "Champion",         tag: "CHP",  role: "front",   grad: [C.O, C.L, C.K] },
+  { id: "Assassin Cross",   tag: "SINX", role: "front",   grad: [C.K, C.G, C.P] },
+  { id: "Stalker",          tag: "STK",  role: "front",   grad: [C.K, C.O, C.P] },
+  { id: "Sniper",           tag: "SNP",  role: "range",   grad: [C.G, C.L, C.K] },
+  { id: "Minstrel",         tag: "MIN",  role: "support", grad: [C.R, C.O, C.P] },
+  { id: "Gypsy",            tag: "GYP",  role: "support", grad: [C.A, C.P, C.K] },
+  { id: "P/Summoner",       tag: "PSUM", role: "summon",  grad: [C.V, C.L, C.P] },
+  { id: "M/Summoner",       tag: "MSUM", role: "summon",  grad: [C.L, C.O, C.K] },
+  { id: "Gunslinger",       tag: "GS",   role: "range",   grad: [C.G, C.P, C.K] },
+];
+const jobStyle = j => `--jc:${j.grad[0]};--jc2:${j.grad[1]};--jfg:${j.grad[2]}`;
+const tagHTML = (j, glyph = true) => `<span class="tag jc r-${j.role}" style="${jobStyle(j)}">${glyph ? `<i class="g r-${j.role}"></i>` : ""}${j.tag}</span>`;
+const JOB = Object.fromEntries(JOBS.map(j => [j.id, j]));
+/* job scores 0–5 from the guild score sheet: HP, solo dps, all dps, heal, support, come back */
+const STATS = [
+  { k: "HP", s: "HP" }, { k: "Solo DPS", s: "SOLO" }, { k: "All DPS", s: "ALL" },
+  { k: "Heal", s: "HEAL" }, { k: "Support", s: "SUP" }, { k: "Come back", s: "CB" },
+];
+const SCORE = {
+  "Lord Knight":    [4, 4, 2, 4, 1, 2],
+  "Paladin":        [5, 3, 0, 3, 4, 1],
+  "High Wizard":    [4, 2, 4, 0, 3, 5],
+  "Scholar":        [4, 5, 3, 0, 2, 3],
+  "Mastersmith":    [2, 5, 1, 0, 1, 1],
+  "Biochemist":     [4, 3, 4, 4, 4, 5],
+  "High Priest":    [5, 5, 5, 5, 5, 5],
+  "Champion":       [3, 5, 1, 1, 1, 5],
+  "Assassin Cross": [2, 5, 1, 0, 0, 1],
+  "Stalker":        [2, 5, 3, 0, 0, 1],
+  "Sniper":         [2, 5, 1, 0, 1, 1],
+  "Minstrel":       [5, 0, 0, 5, 4, 5],
+  "Gypsy":          [5, 0, 0, 5, 4, 5],
+  "P/Summoner":     [4, 5, 4, 3, 3, 3],
+  "M/Summoner":     [4, 4, 5, 3, 3, 4],
+  "Gunslinger":     [3, 4, 4, 0, 0, 3],
+};
+/* more than PRIEST_CAP High Priests in one PT: each priest's solo dps, all dps and come back drop to 0 */
+const PRIEST_CAP = 3;
+/* Minstrel + Gypsy + High Priest all in one PT: those jobs' solo dps and all dps drop to 0 */
+const TRIO = ["Minstrel", "Gypsy", "High Priest"];
+function scoreOf(job, crowd, trio) {
+  const sc = SCORE[job]; if (!sc) return null;
+  const zero = new Set();
+  if (crowd && job === "High Priest") [1, 2, 5].forEach(i => zero.add(i));
+  if (trio && TRIO.includes(job)) [1, 2].forEach(i => zero.add(i));
+  return zero.size ? sc.map((v, i) => (zero.has(i) ? 0 : v)) : sc;
+}
+const SIDES = { top: { th: "ตี้บน", en: "UPPER PARTY", code: "01" }, bot: { th: "ตี้ล่าง", en: "LOWER PARTY", code: "02" } };
+const PER_SIDE = 40, PER_SQUAD = 5;
+const slotId = (side, n) => side + "-" + String(n).padStart(2, "0");
+const ALL_IDS = [];
+for (const s of ["top", "bot"]) for (let n = 1; n <= PER_SIDE; n++) ALL_IDS.push(slotId(s, n));
+
+let slots = {};          // id -> {name, job, uid?}
+let db = null, col = null;
+let canWrite = true;
+let mode = "local";      // "live" | "local"
+let query = "";
+let editing = null;
+const LS_KEY = "party-roster-80";
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function loadLocal() { try { const raw = localStorage.getItem(LS_KEY); if (raw) slots = JSON.parse(raw) || {}; } catch (e) {} }
+function saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(slots)); } catch (e) {} }
+/* a slot counts as taken when it has a player name, a job, or both (job-only = seat reserved for that job) */
+const occupied = d => !!(d && (d.name || d.job));
+
+/* view mode: "job" = jobs only, "name" = player names only, "both" = job + name */
+const LS_VIEW = LS_KEY + ":view";
+let view = "both";
+try { const v = localStorage.getItem(LS_VIEW); if (["job", "name", "both"].includes(v)) view = v; } catch (e) {}
+
+/* ---------- render ---------- */
+function slotHTML(id, n) {
+  const d = slots[id];
+  const filled = occupied(d);
+  const j = filled && JOB[d.job];
+  const q = query.trim().toLowerCase();
+  let cls = filled ? "filled" : "empty";
+  if (q) {
+    const hit = filled && ((d.name || "").toLowerCase().includes(q) || (d.job || "").toLowerCase().includes(q) || (j && j.tag.toLowerCase() === q));
+    cls += hit ? " hit" : " dim";
+  }
+  const full = filled ? `${d.name || "ยังไม่ใส่ชื่อ"} · ${d.job || "ไม่ระบุอาชีพ"}${d.uid ? " · UID " + d.uid : ""}` : "ว่าง";
+  const tag = j ? tagHTML(j) : "";
+  let main, side = "";
+  if (!filled) main = `<span class="name">+ ว่าง</span>`;
+  else if (view === "job") main = j ? `<span class="name jobname"><i class="g r-${j.role}"></i>${esc(j.id)}</span>` : `<span class="name ph">ไม่ระบุอาชีพ</span>`;
+  else if (view === "name") main = d.name ? `<span class="name">${esc(d.name)}</span>` : `<span class="name ph">— ยังไม่ใส่ชื่อ</span>`;
+  else { main = d.name ? `<span class="name">${esc(d.name)}</span>` : `<span class="name ph">— ยังไม่ใส่ชื่อ</span>`; side = tag; }
+  const jc = view === "job" && j ? ` jc" style="${jobStyle(j)}` : "";
+  return `<button type="button" class="slot ${cls}${jc}" data-id="${id}" ${canWrite ? 'draggable="true"' : ""} title="${esc(full)}" aria-label="ช่อง ${n}: ${esc(full)}">
+    <span class="no">${String(n).padStart(2, "0")}</span>
+    ${main}
+    ${side}
+  </button>`;
+}
+function setView(v) {
+  view = v;
+  document.querySelectorAll("#view-seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
+  try { localStorage.setItem(LS_VIEW, v); } catch (e) {}
+  render();
+}
+
+function renderBoard(side) {
+  const el = document.getElementById("board-" + side);
+  const meta = SIDES[side];
+  let count = 0; const comp = {};
+  for (let n = 1; n <= PER_SIDE; n++) {
+    const d = slots[slotId(side, n)];
+    if (occupied(d)) { count++; if (d.job) comp[d.job] = (comp[d.job] || 0) + 1; }
+  }
+  const compHTML = Object.keys(comp).length
+    ? JOBS.filter(j => comp[j.id]).map(j => `<span class="chip" title="${esc(j.id)}"><i class="g jc r-${j.role}" style="${jobStyle(j)}"></i>${j.tag}<b>${comp[j.id]}</b></span>`).join("")
+    : `<span class="note">ยังไม่มีสมาชิก · กดช่อง “+ ว่าง” เพื่อเพิ่มคนแรก</span>`;
+  let squads = "";
+  for (let s = 0; s < PER_SIDE / PER_SQUAD; s++) {
+    let inner = "", sc = 0;
+    for (let n = s * PER_SQUAD + 1; n <= (s + 1) * PER_SQUAD; n++) {
+      const id = slotId(side, n); if (occupied(slots[id])) sc++;
+      inner += slotHTML(id, n);
+    }
+    squads += `<div class="squad${sc === PER_SQUAD ? " full" : ""}"><div class="sq-head"><button type="button" class="pt" data-side="${side}" data-pt="${s + 1}" title="ดูกราฟคะแนนอาชีพของ PT.${s + 1}">PT.${s + 1}<svg viewBox="0 0 10 10" aria-hidden="true"><rect x="0" y="5" width="2.4" height="5"/><rect x="3.8" y="2" width="2.4" height="8"/><rect x="7.6" y="0" width="2.4" height="10"/></svg></button><span class="n">${sc}/${PER_SQUAD}</span></div><div class="rows">${inner}</div></div>`;
+  }
+  el.classList.toggle("readonly", !canWrite);
+  el.innerHTML = `
+    <header class="party-head">
+      <div class="ph-left"><span class="ph-code">${meta.code}</span><div><h2>${meta.th}</h2><span class="ph-en">${meta.en}</span></div></div>
+      <div class="ph-right"><div class="ph-bar"><i style="width:${count / PER_SIDE * 100}%"></i></div><span class="ph-count">${count}<small>/${PER_SIDE}</small></span></div>
+    </header>
+    <div class="comp">${compHTML}</div>
+    <div class="squads">${squads}</div>`;
+  return count;
+}
+
+/* ---------- RO sound effects (random, no immediate repeats) ---------- */
+const SFX = {
+  click: ["click_button", "click_coin", "click_equip", "click_poring", "click_picky", "click_poring_atk", "click_dagger", "click_sword", "click_fist", "click_hit", "click_bow", "click_pistol"],
+  drop: ["drop_potion", "drop_heal", "drop_equip", "drop_arrow", "drop_king_poring", "drop_fire"],
+  remove: ["remove_poring"],
+  full: ["full_levelup"],
+};
+const LS_MUTE = LS_KEY + ":mute";
+let muted = false;
+try { muted = localStorage.getItem(LS_MUTE) === "1"; } catch (e) {}
+const LS_VOL = LS_KEY + ":vol";
+let volume = 1;          // 0–1, scales every effect
+try { const v = localStorage.getItem(LS_VOL); if (v !== null && v !== "" && isFinite(v)) volume = Math.min(1, Math.max(0, +v)); } catch (e) {}
+let actx = null;
+const buffers = {}, bags = {}, lastPlayed = {};
+function nextSound(kind) {
+  const pool = SFX[kind];
+  if (pool.length === 1) return pool[0];
+  if (!bags[kind] || !bags[kind].length) {
+    const bag = pool.slice();
+    for (let i = bag.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [bag[i], bag[j]] = [bag[j], bag[i]]; }
+    if (bag[bag.length - 1] === lastPlayed[kind]) [bag[0], bag[bag.length - 1]] = [bag[bag.length - 1], bag[0]];
+    bags[kind] = bag;
+  }
+  return (lastPlayed[kind] = bags[kind].pop());
+}
+function loadBuffer(name) {
+  if (!buffers[name]) buffers[name] = fetch(`sfx/${name}.wav`).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); }).then(a => actx.decodeAudioData(a)).catch(() => null);
+  return buffers[name];
+}
+function sfx(kind) {
+  if (muted || !volume || !SFX[kind]) return;
+  const name = nextSound(kind);
+  const level = (kind === "full" ? 0.6 : 0.5) * volume;
+  const html5 = () => { const a = new Audio(`sfx/${name}.wav`); a.volume = level; a.play().catch(() => {}); };
+  try {
+    if (!actx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) { actx = new AC(); Object.values(SFX).flat().forEach(n => loadBuffer(n)); }
+    }
+    if (actx) {
+      if (actx.state === "suspended") actx.resume();
+      loadBuffer(name).then(buf => {
+        if (!buf) { html5(); return; }
+        const src = actx.createBufferSource(), g = actx.createGain();
+        g.gain.value = level;
+        src.buffer = buf; src.connect(g).connect(actx.destination); src.start();
+      });
+    } else html5();
+  } catch (e) {}
+}
+function setMuted(m) {
+  muted = m;
+  const b = $("#mute-btn"); b.textContent = m ? "เสียง: ปิด" : "เสียง: เปิด"; b.setAttribute("aria-pressed", String(m));
+  try { localStorage.setItem(LS_MUTE, m ? "1" : ""); } catch (e) {}
+  $(".vol").classList.toggle("off", m);
+}
+setMuted(muted);
+$("#mute-btn").onclick = () => { setMuted(!muted); sfx("click"); };
+function setVolume(pct) {
+  volume = pct / 100;
+  $("#vol").value = pct; $("#vol-v").textContent = pct;
+  try { localStorage.setItem(LS_VOL, String(volume)); } catch (e) {}
+}
+setVolume(Math.round(volume * 100));
+$("#vol").oninput = e => setVolume(+e.target.value);
+// preview the new level once the slider is released
+$("#vol").onchange = () => { if (muted) setMuted(false); sfx("click"); };
+// any click or the start of a drag on a control plays a random click sound
+document.addEventListener("pointerdown", e => {
+  if (e.button !== 0 || e.target.closest("#mute-btn")) return;
+  if (e.target.closest("button, .slot, .member, .jobs label")) sfx("click");
+});
+
+/* level-up sound when a squad becomes 5/5 from this viewer's own action */
+let fullSquads = null, localActionAt = 0;
+const markLocal = () => { localActionAt = Date.now(); };
+function checkFull() {
+  const now = new Set();
+  for (const side of ["top", "bot"]) for (let s = 0; s < PER_SIDE / PER_SQUAD; s++) {
+    let c = 0; for (let n = s * PER_SQUAD + 1; n <= (s + 1) * PER_SQUAD; n++) if (occupied(slots[slotId(side, n)])) c++;
+    if (c === PER_SQUAD) now.add(side + s);
+  }
+  const gained = fullSquads && [...now].some(k => !fullSquads.has(k));
+  fullSquads = now;
+  return gained && Date.now() - localActionAt < 2000;
+}
+
+function render() {
+  if (checkFull()) sfx("full");
+  document.body.classList.toggle("view-job", view === "job");
+  const t = renderBoard("top"), b = renderBoard("bot");
+  $("#r-total").innerHTML = `${t + b}<small>/80</small>`;
+  $("#r-top").innerHTML = `${t}<small>/40</small>`;
+  $("#r-bot").innerHTML = `${b}<small>/40</small>`;
+  $("#r-hp").textContent = Object.values(slots).filter(d => occupied(d) && d.job === "High Priest").length;
+  renderPool();
+  if (ptDlg.open) renderPt();
+}
+
+/* ---------- PT score popup ---------- */
+const ptDlg = $("#pt-dlg");
+let ptOpen = null;         // {side, pt}
+function openPt(side, pt) { ptOpen = { side, pt }; renderPt(); if (!ptDlg.open) ptDlg.showModal(); }
+function renderPt() {
+  if (!ptOpen) return;
+  const { side, pt } = ptOpen, max = PER_SQUAD * 5;
+  const rows = [];
+  for (let n = (pt - 1) * PER_SQUAD + 1; n <= pt * PER_SQUAD; n++) rows.push({ n, d: slots[slotId(side, n)] });
+  const filled = rows.filter(r => occupied(r.d));
+  const priests = filled.filter(r => r.d.job === "High Priest").length;
+  const crowd = priests > PRIEST_CAP;
+  const trio = TRIO.every(job => filled.some(r => r.d.job === job));
+  /* PT made up only of Minstrel / Gypsy / High Priest: every member's solo dps and all dps drop to 0 */
+  const onlyTrio = filled.length > 0 && filled.every(r => TRIO.includes(r.d.job));
+  rows.forEach(r => { r.sc = occupied(r.d) ? scoreOf(r.d.job, crowd, trio || onlyTrio) : null; });
+  const scored = filled.filter(r => r.sc);
+  const totals = STATS.map((_, i) => scored.reduce((a, r) => a + r.sc[i], 0));
+  const rules = [];
+  if (crowd) rules.push(`มีพระ ${priests} คน (เกิน ${PRIEST_CAP}) · พระทุกคนในตี้นี้ได้ Solo DPS, All DPS, Come back = 0`);
+  if (onlyTrio) rules.push(`ตี้นี้มีแต่ Minstrel / Gypsy / High Priest · ทุกคนในตี้ได้ Solo DPS, All DPS = 0`);
+  else if (trio) rules.push(`มี Minstrel + Gypsy + High Priest ในตี้ · ทั้ง 3 อาชีพได้ Solo DPS, All DPS = 0`);
+  $("#pt-rule").hidden = !rules.length;
+  $("#pt-rule").textContent = rules.join(" · ");
+  const hi = Math.max(...totals), lo = Math.min(...totals);
+  $("#pt-title").textContent = `${SIDES[side].th} · PT.${pt}`;
+  $("#pt-code").textContent = `${filled.length}/${PER_SQUAD}`;
+  $("#pt-chart").innerHTML = STATS.map((st, i) => {
+    const mark = scored.length && hi !== lo ? (totals[i] === hi ? " top" : totals[i] === lo ? " low" : "") : "";
+    const segs = scored.map(r => { const v = r.sc[i]; return v ? `<i style="width:${v / max * 100}%" title="${esc(r.d.name || "ยังไม่ใส่ชื่อ")} · ${esc(r.d.job)} · ${v}"></i>` : ""; }).join("");
+    return `<div class="pc-row${mark}"><span class="pc-k">${st.k}</span><div class="pc-bar" role="img" aria-label="${st.k} ${totals[i]} จาก ${max}">${segs}</div><span class="pc-v">${totals[i]}<small>/${max}</small></span></div>`;
+  }).join("");
+  const body = rows.map(({ n, d, sc }) => {
+    const no = `<td class="c-no">${String(n).padStart(2, "0")}</td>`;
+    if (!occupied(d)) return `<tr class="empty">${no}<td class="c-who"><div class="who"><span>ว่าง</span></div></td>${STATS.map(() => "<td>·</td>").join("")}</tr>`;
+    const j = JOB[d.job];
+    const who = `<td class="c-who"><div class="who" title="${esc(d.name || "ยังไม่ใส่ชื่อ")} · ${esc(d.job || "ไม่ระบุอาชีพ")}">${j ? tagHTML(j, false) : ""}<span>${esc(d.name || d.job)}</span></div></td>`;
+    return `<tr>${no}${who}${STATS.map((_, i) => sc ? `<td class="s s${sc[i]}">${sc[i]}</td>` : "<td>–</td>").join("")}</tr>`;
+  }).join("");
+  $("#pt-tbl").innerHTML = `<colgroup><col class="c-no"><col class="c-who">${STATS.map(() => `<col class="c-s">`).join("")}</colgroup>
+    <thead><tr><th class="c-no">#</th><th class="c-who">สมาชิก</th>${STATS.map(st => `<th title="${st.k}">${st.s}</th>`).join("")}</tr></thead>
+    <tbody>${body}</tbody>
+    <tfoot><tr><th class="c-no"></th><th class="c-who">รวม</th>${totals.map(t => `<th>${t}</th>`).join("")}</tr></tfoot>`;
+}
+$("#pt-x").onclick = () => ptDlg.close();
+ptDlg.addEventListener("click", e => { if (e.target === ptDlg) ptDlg.close(); });
+ptDlg.addEventListener("close", () => { ptOpen = null; });
+
+function setStatus(live, text) { const s = $("#status"); s.classList.toggle("live", live); s.querySelector("span").textContent = text; }
+let toastTimer;
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, 2200); }
+
+/* ---------- guild member list ---------- */
+let members = [];          // [{name, uid, job?, added?}] from config/members
+let membersMeta = {};      // other fields of config/members (source, syncedAt)
+let membersLoaded = false;
+const memberByName = name => members.find(m => m.name === name);
+function slotOfName(name, except) { return name && ALL_IDS.find(id => id !== except && slots[id] && slots[id].name === name); }
+function slotLabel(id) { const [s, n] = id.split("-"); return `${SIDES[s].th} ช่อง ${n}`; }
+function renderPool() {
+  const el = $("#pool-list");
+  if (!membersLoaded) return;
+  const placed = new Set(Object.values(slots).map(d => d && d.name));
+  const free = members.filter(m => !placed.has(m.name));
+  $("#pool-count").textContent = `${free.length}/${members.length}`;
+  if (!members.length) { el.innerHTML = `<span class="note">ยังไม่มีรายชื่อกิลด์</span>`; return; }
+  if (!free.length) { el.innerHTML = `<span class="note">ทุกคนในรายชื่อได้ลงตี้แล้ว</span>`; return; }
+  el.innerHTML = free.map(m => {
+    const j = m.job && JOB[m.job];
+    return `<span class="member${m.added ? " added" : ""}" data-name="${esc(m.name)}" ${canWrite ? 'draggable="true"' : ""}>
+      <button type="button" class="pick" ${canWrite ? "" : "disabled"} title="ลากลงช่อง หรือกดเพื่อใส่ช่องว่างช่องแรก">${esc(m.name)}${m.uid ? `<small>${esc(m.uid)}</small>` : ""}${j ? tagHTML(j, false) : ""}</button>
+      ${m.added && canWrite ? `<button type="button" class="rm" title="ลบ ${esc(m.name)} ออกจากรายชื่อ" aria-label="ลบ ${esc(m.name)}">×</button>` : ""}
+    </span>`;
+  }).join("");
+}
+function setMembers(list) {
+  members = Array.isArray(list) ? list.filter(m => m && m.name).map(m => {
+    const o = { name: String(m.name), uid: String(m.uid || "") };
+    if (m.job && JOB[m.job]) o.job = String(m.job);
+    if (m.added) o.added = true;
+    return o;
+  }) : [];
+  membersLoaded = true;
+  $("#member-list").innerHTML = members.map(m => `<option value="${esc(m.name)}">UID ${esc(m.uid)}</option>`).join("");
+  renderPool();
+}
+$("#pool-list").addEventListener("click", async e => {
+  const chip = e.target.closest(".member"); if (!chip || !canWrite) return;
+  const name = chip.dataset.name;
+  if (e.target.closest(".rm")) {
+    try { await saveMembers(members.filter(m => m.name !== name)); toast(`ลบ ${name} ออกจากรายชื่อแล้ว`); }
+    catch (err) { toast(writeError(err)); }
+    return;
+  }
+  const empty = ALL_IDS.find(id => !occupied(slots[id]));
+  if (!empty) { toast("ครบ 80 ช่องแล้ว"); return; }
+  placeMember(empty, name);
+});
+
+/* put a pool member into a slot: direct if their job is known, otherwise ask for the job */
+async function placeMember(id, name) {
+  const m = memberByName(name);
+  const cur = slots[id];
+  /* a job-only slot keeps its reserved job when the member has no job on record */
+  const job = (m && m.job) || (cur && !cur.name && cur.job) || "";
+  if (!m || !job) { openEditor(id, name); return; }
+  const dup = slotOfName(name, id);
+  if (dup) { toast(`${name} อยู่ใน${slotLabel(dup)}แล้ว`); return; }
+  const data = { name, job }; if (m.uid) data.uid = m.uid;
+  try { await writeSlot(id, data); render(); sfx("drop"); toast(`ใส่ ${name} ใน${slotLabel(id)}แล้ว`); }
+  catch (err) { toast(writeError(err)); render(); }
+}
+
+/* member list writes */
+const LS_MEMBERS = LS_KEY + ":members";
+async function saveMembers(list) {
+  if (mode === "live") await db.doc("config/members").set({ ...membersMeta, list });
+  else { try { localStorage.setItem(LS_MEMBERS, JSON.stringify(list)); } catch (e) {} }
+  setMembers(list);
+}
+$("#add-job").innerHTML += JOBS.map(j => `<option value="${esc(j.id)}">${esc(j.id)}</option>`).join("");
+$("#add-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!canWrite) return;
+  const name = $("#add-name").value.trim(), job = $("#add-job").value;
+  if (!name) { $("#add-name").focus(); return; }
+  if (memberByName(name)) { toast(`มีชื่อ ${name} ในรายชื่อแล้ว`); return; }
+  const entry = { name, uid: "", added: true }; if (job) entry.job = job;
+  try {
+    $("#add-btn").disabled = true;
+    await saveMembers([...members, entry]);
+    $("#add-name").value = ""; $("#add-job").value = ""; $("#add-name").focus();
+    sfx("drop"); toast(`เพิ่ม ${name} แล้ว · ลากลงช่องได้เลย`);
+  } catch (err) { toast(writeError(err)); }
+  finally { $("#add-btn").disabled = false; }
+});
+/* pull the member list from the Guild Auction Queue (public Firestore doc queue/data) */
+const QUEUE_PAGE = "https://0twingamer2-design.github.io/Guild-Auction/queue.html";
+const QUEUE_DOC = "https://firestore.googleapis.com/v1/projects/scream-rooc-auction-planner/databases/(default)/documents/queue/data";
+function showSyncedAt(at) { $("#pool-src").textContent = `รายชื่อจาก Guild Auction Queue · อัปเดต ${at}`; }
+async function fetchQueue() {
+  const r = await fetch(QUEUE_DOC, { cache: "no-store" });
+  if (!r.ok) throw new Error("http " + r.status);
+  const doc = await r.json();
+  const vals = (doc.fields && doc.fields.members && doc.fields.members.arrayValue.values) || [];
+  const str = v => (v && (v.stringValue ?? v.integerValue)) || "";
+  const seen = new Set(), out = [];
+  for (const v of vals) {
+    const f = (v.mapValue && v.mapValue.fields) || {};
+    const name = String(str(f.name)).trim(), uid = String(str(f.uid)).trim();
+    if (!name || seen.has(name)) continue;
+    seen.add(name); out.push({ name, uid });
+  }
+  return out;
+}
+/* queue names replace the synced list; jobs already set are kept, hand-added names stay unless the queue now has them */
+function mergeQueue(fresh) {
+  const old = new Map(members.map(m => [m.name, m]));
+  const byUid = new Map(members.filter(m => m.uid).map(m => [m.uid, m]));
+  const names = new Set(fresh.map(m => m.name));
+  const list = fresh.map(f => {
+    const prev = old.get(f.name) || (f.uid && byUid.get(f.uid));
+    const o = { name: f.name, uid: f.uid || (prev && prev.uid) || "" };
+    if (prev && prev.job) o.job = prev.job;
+    return o;
+  });
+  const kept = members.filter(m => m.added && !names.has(m.name));
+  const added = fresh.filter(f => !old.has(f.name)).length;
+  const dropped = members.filter(m => !m.added && !names.has(m.name)).length;
+  return { list: [...list, ...kept], added, dropped };
+}
+$("#sync-btn").onclick = async () => {
+  if (!canWrite) return;
+  const b = $("#sync-btn");
+  b.disabled = true; b.textContent = "กำลังดึง…";
+  try {
+    const fresh = await fetchQueue();
+    if (!fresh.length) { toast("ไม่พบรายชื่อในหน้า Queue"); return; }
+    const { list, added, dropped } = mergeQueue(fresh);
+    const at = new Date().toISOString().slice(0, 10);
+    membersMeta = { ...membersMeta, source: QUEUE_PAGE, syncedAt: at };
+    if (mode !== "live") { try { localStorage.setItem(LS_MEMBERS + ":at", at); } catch (e) {} }
+    await saveMembers(list);
+    showSyncedAt(at);
+    toast(`ดึงรายชื่อแล้ว ${fresh.length} คน · ใหม่ ${added}${dropped ? ` · หลุดคิว ${dropped}` : ""}`);
+  } catch (err) {
+    toast(err && err.code ? writeError(err) : "ดึงรายชื่อไม่สำเร็จ ลองอีกครั้ง");
+  } finally { b.disabled = false; b.textContent = "ดึงรายชื่อจากเว็บ"; }
+};
+function updateNameHint() {
+  const name = $("#f-name").value.trim(), h = $("#f-name-hint");
+  h.classList.remove("warn");
+  if (!name) { h.textContent = membersLoaded ? `เลือกจากรายชื่อกิลด์ ${members.length} คน หรือพิมพ์ชื่อเอง` : ""; return; }
+  const other = slotOfName(name, editing);
+  if (other) { h.textContent = `ชื่อนี้อยู่ใน${slotLabel(other)}แล้ว`; h.classList.add("warn"); return; }
+  const m = memberByName(name);
+  if (m) h.textContent = `UID ${m.uid} · อยู่ในรายชื่อกิลด์`;
+  else if (membersLoaded) { h.textContent = "ไม่พบชื่อนี้ในรายชื่อกิลด์ (บันทึกได้ตามปกติ)"; h.classList.add("warn"); }
+  else h.textContent = "";
+}
+$("#f-name").addEventListener("input", updateNameHint);
+
+/* ---------- writes ---------- */
+async function writeSlot(id, data) {
+  markLocal();
+  if (occupied(data)) slots[id] = data; else delete slots[id];
+  if (mode === "live") {
+    const ref = col.doc(id);
+    if (occupied(data)) await ref.set(data); else await ref.delete();
+  } else saveLocal();
+}
+async function swap(a, b) {
+  if (a === b) return;
+  const da = slots[a] ? { ...slots[a] } : null, dbb = slots[b] ? { ...slots[b] } : null;
+  await writeSlot(b, da);
+  await writeSlot(a, dbb);
+  render();
+}
+function writeError(e) {
+  if (e && e.code === "invalid_argument") { canWrite = false; render(); return "คุณมีสิทธิ์ดูอย่างเดียว แก้ไขรายชื่อไม่ได้"; }
+  if (e && e.code === "quota_exceeded") return "พื้นที่เก็บข้อมูลเต็ม";
+  return "บันทึกไม่สำเร็จ ลองอีกครั้ง";
+}
+
+/* ---------- editor ---------- */
+const dlg = $("#dlg");
+$("#f-jobs").innerHTML = `<label><input type="radio" name="job" id="job-none" value=""><i class="g"></i>ยังไม่ระบุ</label>` + JOBS.map((j, i) =>
+  `<label><input type="radio" name="job" id="job-${i}" value="${esc(j.id)}"><i class="g jc r-${j.role}" style="${jobStyle(j)}"></i>${esc(j.id)}</label>`).join("");
+$("#f-move").innerHTML = `<option value="">— อยู่ช่องเดิม —</option>` + ["top", "bot"].map(s =>
+  `<optgroup label="${SIDES[s].th}">` + Array.from({ length: PER_SIDE }, (_, i) => `<option value="${slotId(s, i + 1)}"></option>`).join("") + `</optgroup>`).join("");
+
+function openEditor(id, prefill) {
+  if (!canWrite) return;
+  editing = id;
+  const [side, n] = id.split("-");
+  const d = slots[id] || {};
+  const pt = Math.ceil(Number(n) / PER_SQUAD);
+  $("#dlg-title").textContent = `${SIDES[side].th} · PT.${pt} · ช่อง ${n}`;
+  $("#dlg-code").textContent = id.toUpperCase();
+  $("#f-name").value = prefill || d.name || "";
+  updateNameHint();
+  document.querySelectorAll("#f-jobs input").forEach(r => r.checked = r.value === (d.job || ""));
+  $("#f-move").value = "";
+  [...$("#f-move").options].forEach(o => {
+    if (!o.value) return;
+    const o2 = slots[o.value];
+    const [s2, n2] = o.value.split("-");
+    o.textContent = `${SIDES[s2].th} · PT.${Math.ceil(Number(n2) / PER_SQUAD)} · ${n2}${occupied(o2) ? "  — " + (o2.name || `[${o2.job}]`) : ""}`;
+    o.disabled = o.value === id;
+  });
+  $("#f-err").textContent = "";
+  $("#f-clear").hidden = !occupied(d);
+  dlg.showModal();
+  $("#f-name").focus();
+}
+$("#f-cancel").onclick = () => dlg.close();
+$("#f-clear").onclick = async () => {
+  try { await writeSlot(editing, null); render(); dlg.close(); sfx("remove"); toast("ล้างช่องแล้ว"); }
+  catch (e) { $("#f-err").textContent = writeError(e); }
+};
+$("#dlg-form").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const name = $("#f-name").value.trim();
+  const jobEl = document.querySelector("#f-jobs input:checked");
+  const job = jobEl ? jobEl.value : "";
+  if (!name && !job) { $("#f-err").textContent = "ใส่ชื่อผู้เล่น หรือเลือกอาชีพ อย่างน้อย 1 อย่าง"; $("#f-name").focus(); return; }
+  const dup = slotOfName(name, editing);
+  if (dup) { $("#f-err").textContent = `${name} อยู่ใน${slotLabel(dup)}แล้ว ล้างช่องนั้นก่อน หรือใช้ "ย้ายไปช่อง"`; return; }
+  const m = name && memberByName(name);
+  const data = { name, job };
+  if (m && m.uid) data.uid = m.uid;
+  const target = $("#f-move").value;
+  try {
+    $("#f-save").disabled = true;
+    await writeSlot(editing, data);
+    if (target) await swap(editing, target);
+    render(); dlg.close(); sfx("drop");
+    toast(target ? "บันทึกและย้ายช่องแล้ว" : "บันทึกแล้ว");
+  } catch (e) { $("#f-err").textContent = writeError(e); }
+  finally { $("#f-save").disabled = false; }
+});
+
+/* ---------- interactions ---------- */
+const boards = document.querySelector(".boards");
+boards.addEventListener("click", e => {
+  const p = e.target.closest(".pt"); if (p) { openPt(p.dataset.side, Number(p.dataset.pt)); return; }
+  const s = e.target.closest(".slot"); if (s) openEditor(s.dataset.id);
+});
+/* drag & drop: slot→slot swaps, member→slot places, slot→pool removes from party */
+let dragId = null, dragMember = null;
+const pool = document.querySelector(".pool");
+function clearDrag() {
+  dragId = null; dragMember = null;
+  pool.classList.remove("drop-ok");
+  document.querySelectorAll(".dragging,.drag-over").forEach(x => x.classList.remove("dragging", "drag-over"));
+}
+document.addEventListener("dragstart", e => {
+  if (!canWrite) return;
+  const s = e.target.closest && e.target.closest(".slot");
+  const m = e.target.closest && e.target.closest(".member");
+  if (s) dragId = s.dataset.id;
+  else if (m) dragMember = m.dataset.name;
+  else return;
+  (s || m).classList.add("dragging");
+  e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", dragId || dragMember);
+});
+document.addEventListener("dragend", clearDrag);
+boards.addEventListener("dragover", e => {
+  const s = e.target.closest(".slot"); if (!s || !(dragId || dragMember)) return;
+  e.preventDefault();
+  document.querySelectorAll(".drag-over").forEach(x => x !== s && x.classList.remove("drag-over"));
+  s.classList.add("drag-over");
+});
+boards.addEventListener("dragleave", e => { const s = e.target.closest(".slot"); if (s && !s.contains(e.relatedTarget)) s.classList.remove("drag-over"); });
+boards.addEventListener("drop", async e => {
+  const s = e.target.closest(".slot"); if (!s || !(dragId || dragMember)) return;
+  e.preventDefault();
+  const from = dragId, name = dragMember, to = s.dataset.id; clearDrag();
+  if (name) { placeMember(to, name); return; }
+  try { await swap(from, to); sfx("drop"); toast("สลับช่องแล้ว"); } catch (err) { toast(writeError(err)); render(); }
+});
+pool.addEventListener("dragover", e => { if (!dragId) return; e.preventDefault(); pool.classList.add("drop-ok"); });
+pool.addEventListener("dragleave", e => { if (!pool.contains(e.relatedTarget)) pool.classList.remove("drop-ok"); });
+pool.addEventListener("drop", async e => {
+  if (!dragId) return;
+  e.preventDefault();
+  const id = dragId, d = slots[id]; clearDrag();
+  if (!occupied(d)) return;
+  const who = d.name || d.job;
+  try { await writeSlot(id, null); render(); sfx("remove"); toast(`เอา ${who} ออกจากตี้แล้ว`); } catch (err) { toast(writeError(err)); render(); }
+});
+$("#search").addEventListener("input", e => { query = e.target.value; render(); });
+$("#view-seg").addEventListener("click", e => { const b = e.target.closest("button[data-view]"); if (b) setView(b.dataset.view); });
+document.querySelectorAll("#view-seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === view)));
+
+/* capture mode: hide tools & pool so both parties fill one screen */
+function setCapture(on) {
+  document.body.classList.toggle("capture", on);
+  if (on) {
+    if (query) { query = ""; $("#search").value = ""; render(); }
+    const d = new Date();
+    $("#cap-stamp").textContent = `GUILD ROSTER · ${d.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })} ${d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}`;
+    window.scrollTo(0, 0);
+  }
+  try { localStorage.setItem(LS_KEY + ":cap", on ? "1" : ""); } catch (e) {}
+}
+$("#cap-btn").onclick = () => setCapture(true);
+$("#cap-exit").onclick = () => setCapture(false);
+addEventListener("keydown", e => { if (e.key === "Escape" && document.body.classList.contains("capture") && !dlg.open && !ptDlg.open && !autoDlg.open) setCapture(false); });
+
+$("#copy-btn").onclick = async () => {
+  const lines = [];
+  for (const side of ["top", "bot"]) {
+    lines.push(`== ${SIDES[side].th} ==`);
+    for (let n = 1; n <= PER_SIDE; n++) {
+      if ((n - 1) % PER_SQUAD === 0) lines.push(`-- PT.${(n - 1) / PER_SQUAD + 1} --`);
+      const d = slots[slotId(side, n)];
+      const txt = !occupied(d) ? "-"
+        : view === "job" ? (d.job || "-")
+        : view === "name" ? (d.name || "-")
+        : `${d.name || "(ยังไม่ใส่ชื่อ)"} — ${d.job || "ไม่ระบุอาชีพ"}`;
+      lines.push(`${String(n).padStart(2, "0")}. ${txt}`);
+    }
+    lines.push("");
+  }
+  copyText(lines.join("\n"), "คัดลอกรายชื่อแล้ว");
+};
+async function copyText(text, okMsg) {
+  try { await navigator.clipboard.writeText(text); toast(okMsg); }
+  catch (e) {
+    const ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); toast(okMsg); } catch (_) { toast("คัดลอกไม่ได้ในหน้านี้"); }
+    ta.remove();
+  }
+}
+
+/* share: the page's own address when opened directly, otherwise (inside the claude.ai frame) the artifact link */
+const SHARE_URL = "https://claude.ai/artifact/8sc35ziQxtLciyPzvFZLkQ";
+function shareUrl() {
+  try { if (window.top === window && /^https?:$/.test(location.protocol)) return location.href.split("#")[0]; } catch (e) {}
+  return SHARE_URL;
+}
+$("#share-btn").onclick = async () => {
+  const url = shareUrl();
+  if (navigator.share) {
+    try { await navigator.share({ title: "Party Roster 80", text: "จัดตี้กิลด์ 80 ช่อง", url }); return; }
+    catch (e) { if (e && e.name === "AbortError") return; }
+  }
+  copyText(url, "คัดลอกลิงก์แล้ว · วางส่งให้เพื่อนได้เลย");
+};
+
+/* ---------- auto-fill from pasted team list ---------- */
+/* "⚔️ Guild TEAM 1 …" → top, "TEAM 2" → bot; "Party N" picks PT.N; "1. Job - Name" picks the seat */
+/* inside each party: other jobs first, then Minstrel / Gypsy, High Priest always last (stable within a group) */
+const seatRank = job => { const k = job.toLowerCase(); return k === "high priest" ? 2 : k === "minstrel" || k === "gypsy" ? 1 : 0; };
+function parseRoster(text) {
+  const parties = new Map(); let side = null, pt = 0;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim(); if (!line) continue;
+    const t = line.match(/TEAM\s*(\d)/i);
+    if (t) { side = t[1] === "1" ? "top" : t[1] === "2" ? "bot" : null; pt = 0; continue; }
+    const p = line.match(/^Party\s*(\d+)/i);
+    if (p) { pt = Number(p[1]); continue; }
+    const m = line.match(/^(\d+)[.)]\s*(.+?)\s+-\s+(.+)$/);
+    if (!m || !side || pt < 1 || pt > PER_SIDE / PER_SQUAD) continue;
+    const seat = Number(m[1]); if (seat < 1 || seat > PER_SQUAD) continue;
+    const key = side + ":" + pt;
+    if (!parties.has(key)) parties.set(key, { side, pt, list: [] });
+    parties.get(key).list.push({ seat, job: m[2].trim(), name: m[3].trim() });
+  }
+  const out = [];
+  for (const { side, pt, list } of parties.values()) {
+    list.sort((a, b) => seatRank(a.job) - seatRank(b.job) || a.seat - b.seat);
+    list.slice(0, PER_SQUAD).forEach((r, i) => out.push({ id: slotId(side, (pt - 1) * PER_SQUAD + i + 1), job: r.job, name: r.name }));
+  }
+  return out;
+}
+/* loose key so "TESTAROSSA" finds "TESTAR0SSA", "PLUSSSSS" finds "PLUSSSS…", "AIGUN" finds "ＡｉＧｕｎ" */
+const looseName = s => s.normalize("NFKC").toLowerCase().replace(/\s+/g, "").replace(/0/g, "o").replace(/(.)\1+/gu, "$1");
+function findMember(name) {
+  const exact = memberByName(name); if (exact) return exact;
+  const k = looseName(name), hits = members.filter(m => looseName(m.name) === k);
+  return hits.length === 1 ? hits[0] : null;
+}
+function resolveJob(raw, m) {
+  const k = raw.toLowerCase();
+  const hit = JOBS.find(j => j.id.toLowerCase() === k || j.tag.toLowerCase() === k);
+  if (hit) return hit.id;
+  if (k === "summoner") return m && JOB[m.job] && JOB[m.job].role === "summon" ? m.job : "M/Summoner";
+  return raw;
+}
+async function autoFill(text) {
+  const rows = parseRoster(text);
+  if (!rows.length) throw new Error("ไม่เจอรายชื่อ · ต้องมีหัวข้อ TEAM 1 / TEAM 2, Party N และบรรทัด “1. อาชีพ - ชื่อ”");
+  const next = {}, seen = new Set(), sides = new Set(), unknown = [], dup = [];
+  for (const r of rows) {
+    const m = findMember(r.name), name = m ? m.name : r.name;
+    if (seen.has(name)) { dup.push(name); continue; }
+    seen.add(name); sides.add(r.id.split("-")[0]);
+    const data = { name, job: resolveJob(r.job, m) };
+    if (m && m.uid) data.uid = m.uid;
+    if (!m) unknown.push(r.name);
+    next[r.id] = data;
+  }
+  const ids = ALL_IDS.filter(id => sides.has(id.split("-")[0]));
+  await Promise.all(ids.map(id => (next[id] || occupied(slots[id])) ? writeSlot(id, next[id] || null) : null));
+  render();
+  return { placed: Object.keys(next).length, unknown, dup };
+}
+const autoDlg = $("#auto-dlg");
+$("#auto-btn").onclick = () => {
+  if (!canWrite) { toast("คุณมีสิทธิ์ดูอย่างเดียว"); return; }
+  $("#auto-msg").textContent = ""; $("#auto-msg").classList.remove("warn");
+  autoDlg.showModal();
+};
+$("#auto-cancel").onclick = () => autoDlg.close();
+$("#auto-reset").onclick = () => { $("#auto-txt").value = $("#auto-txt").defaultValue; };
+$("#auto-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const msg = $("#auto-msg"), go = $("#auto-go");
+  msg.classList.remove("warn");
+  try {
+    go.disabled = true; msg.textContent = "กำลังจัดตี้…";
+    const { placed, unknown, dup } = await autoFill($("#auto-txt").value);
+    sfx("full");
+    const notes = [];
+    if (unknown.length) notes.push(`ไม่พบในรายชื่อกิลด์ ${unknown.length} คน (ใส่ตามที่พิมพ์): ${unknown.join(", ")}`);
+    if (dup.length) notes.push(`ชื่อซ้ำ ข้ามไป: ${dup.join(", ")}`);
+    toast(`จัดตี้เสร็จ ${placed} คน`);
+    if (notes.length) { msg.textContent = `✅ จัดเสร็จ ${placed} คน\n⚠️ ` + notes.join("\n⚠️ "); msg.classList.add("warn"); }
+    else autoDlg.close();
+  } catch (err) {
+    msg.textContent = err && err.code ? writeError(err) : (err && err.message) || "จัดตี้ไม่สำเร็จ"; msg.classList.add("warn");
+  } finally { go.disabled = false; }
+});
+
+/* ---------- boot ---------- */
+loadLocal();
+render();
+try { if (localStorage.getItem(LS_KEY + ":cap")) setCapture(true); } catch (e) {}
+setStatus(false, "ออฟไลน์ · บันทึกเฉพาะเครื่องนี้");
+function loadLocalMembers() {
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem(LS_MEMBERS) || "[]"); } catch (e) {}
+  setMembers(list);
+  try { const at = localStorage.getItem(LS_MEMBERS + ":at"); if (at) showSyncedAt(at); } catch (e) {}
+  /* first visit with no saved list: fill it from the queue automatically */
+  if (!members.length) $("#sync-btn").click();
+}
+(async () => {
+  if (!window.claude || !claude.use) { loadLocalMembers(); return; }
+  try {
+    const [dbNs, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+    if (!dbNs) { loadLocalMembers(); return; }
+    db = dbNs; col = db.collection("slots");
+    db.doc("config/members").onSnapshot(s => {
+      const v = s.exists ? s.data() : null;
+      membersMeta = {}; if (v) for (const k in v) if (k !== "list") membersMeta[k] = v[k];
+      if (v && v.syncedAt) showSyncedAt(v.syncedAt);
+      setMembers(v ? v.list : []);
+    }, () => {});
+    if (user) { try { const w = await user.can("data.write"); if (w === false) canWrite = false; } catch (e) {} }
+    col.onSnapshot(snap => {
+      const next = {};
+      snap.docs.forEach(d => { if (ALL_IDS.includes(d.id)) { const v = d.data(); if (occupied(v)) next[d.id] = { name: String(v.name || ""), job: String(v.job || ""), ...(v.uid ? { uid: String(v.uid) } : {}) }; } });
+      slots = next; mode = "live";
+      setStatus(true, canWrite ? "ออนไลน์ · ทุกคนเห็นรายชื่อเดียวกัน" : "ออนไลน์ · ดูอย่างเดียว");
+      render();
+    }, () => { mode = "local"; loadLocal(); setStatus(false, "การเชื่อมต่อหลุด · บันทึกเฉพาะเครื่องนี้"); render(); });
+  } catch (e) {}
+})();
+</script>

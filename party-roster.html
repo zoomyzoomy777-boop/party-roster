@@ -345,8 +345,12 @@ body.unlocked .gate { display: none; }
     <div class="gate-body">
       <p class="gate-msg" id="gate-msg" role="status">กำลังเชื่อมต่อ…</p>
       <form class="gate-form" id="pw-form" autocomplete="off" hidden>
+        <div class="field" id="id-f" hidden>
+          <label for="id-in">ID</label>
+          <input type="text" id="id-in" maxlength="64" autocomplete="username" autocapitalize="off" spellcheck="false">
+        </div>
         <div class="field">
-          <label for="pw-in">รหัสผ่านกิลด์</label>
+          <label for="pw-in" id="pw-in-l">รหัสผ่านกิลด์</label>
           <input type="password" id="pw-in" maxlength="128" autocomplete="current-password">
         </div>
         <div class="field" id="pw-again-f" hidden>
@@ -1547,16 +1551,48 @@ const saveAutofill = async () => db.doc("config/autofill").set(await seal({ text
 
 /* ---------- lock screen ---------- */
 const RELOAD_BTN = `<button class="btn lime" type="button" data-act="reload">รีเฟรช</button>`;
-let gateMode = null;       // "unlock" | "setup" | null
+let gateMode = null;       // "unlock" | "setup" | "login" | null
 function showGate(msg, { warn = false, form = null, actions = "" } = {}) {
   gateMode = form;
-  $("#gate-title").textContent = form === "setup" ? "ตั้งรหัสผ่านกิลด์" : "ข้อมูลถูกเข้ารหัส";
+  $("#gate-title").textContent = form === "setup" ? "ตั้งรหัสผ่านกิลด์" : form === "login" ? "เข้าสู่ระบบ" : "ข้อมูลถูกเข้ารหัส";
   $("#gate-msg").textContent = msg; $("#gate-msg").classList.toggle("warn", warn);
   $("#pw-form").hidden = !form;
+  $("#id-f").hidden = form !== "login";
+  $("#pw-in-l").textContent = form === "login" ? "รหัสผ่าน" : "รหัสผ่านกิลด์";
   $("#pw-again-f").hidden = form !== "setup";
-  $("#pw-go").textContent = form === "setup" ? "ตั้งรหัสและเข้ารหัสข้อมูล" : "ปลดล็อก";
+  $("#pw-go").textContent = form === "setup" ? "ตั้งรหัสและเข้ารหัสข้อมูล" : form === "login" ? "เข้าสู่ระบบ" : "ปลดล็อก";
   $("#gate-actions").innerHTML = actions;
-  if (form) $("#pw-in").focus();
+  if (form) $(form === "login" && !$("#id-in").value ? "#id-in" : "#pw-in").focus();
+}
+
+/* ---------- view login (GitHub Pages / local mode) ----------
+   Outside claude.ai there is no db to encrypt, so the page asks for an ID + password before showing the roster.
+   Only a SHA-256 of "id:password" is kept here; this is a view gate on a static page, not server-side security. */
+const LOGIN_HASH = "b16de572992c607db0572732f7779048df31e0b4294168936bdb07da894d0cb5";
+const LS_LOGIN = LS_KEY + ":login";
+async function sha256hex(s) {
+  const h = new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(s)));
+  return Array.from(h, b => b.toString(16).padStart(2, "0")).join("");
+}
+function loggedIn() {
+  try { return localStorage.getItem(LS_LOGIN) === LOGIN_HASH || sessionStorage.getItem(LS_LOGIN) === LOGIN_HASH; } catch (e) { return false; }
+}
+function forgetLogin() {
+  try { localStorage.removeItem(LS_LOGIN); } catch (e) {}
+  try { sessionStorage.removeItem(LS_LOGIN); } catch (e) {}
+}
+async function tryLogin() {
+  const id = $("#id-in").value.trim(), pass = $("#pw-in").value;
+  if (!id) { $("#id-in").focus(); return; }
+  if (await sha256hex(id + ":" + pass) !== LOGIN_HASH) {
+    $("#pw-in").value = "";
+    showGate("ID หรือรหัสผ่านไม่ถูกต้อง ลองอีกครั้ง", { warn: true, form: "login" });
+    sfx("remove"); return;
+  }
+  try { ($("#pw-remember").checked ? localStorage : sessionStorage).setItem(LS_LOGIN, LOGIN_HASH); } catch (e) {}
+  $("#id-in").value = ""; $("#pw-in").value = "";
+  sfx("drop");
+  startLocal();
 }
 function askPassphrase(msg, warn = false) {
   showGate(msg || "รายชื่อในหน้านี้ถูกเข้ารหัส · ใส่รหัสผ่านกิลด์เพื่อเปิดดู", { warn, form: "unlock" });
@@ -1584,6 +1620,7 @@ $("#pw-form").addEventListener("submit", async e => {
   if (!pass) { $("#pw-in").focus(); return; }
   go.disabled = true; go.textContent = "กำลังตรวจ…";
   try {
+    if (gateMode === "login") { await tryLogin(); return; }
     if (gateMode === "setup") {
       if (pass.length < 6) { showGate("รหัสต้องยาวอย่างน้อย 6 ตัว", { warn: true, form: "setup" }); return; }
       if (pass !== $("#pw-again").value) { showGate("รหัสทั้งสองช่องไม่ตรงกัน", { warn: true, form: "setup" }); return; }
@@ -1608,7 +1645,7 @@ $("#pw-form").addEventListener("submit", async e => {
 $("#gate-actions").addEventListener("click", e => {
   const a = e.target.closest("[data-act]"); if (a && a.dataset.act === "reload") location.reload();
 });
-$("#lock-btn").onclick = () => { forgetKey(); location.reload(); };
+$("#lock-btn").onclick = () => { forgetKey(); forgetLogin(); location.reload(); };
 
 /* change passphrase (Editors / owner): new salt + key, then every doc is re-encrypted under it */
 const pwDlg = $("#pw-dlg");
@@ -1645,7 +1682,7 @@ render();
 function startLocal() {
   document.body.classList.add("unlocked");
   try { if (localStorage.getItem(LS_KEY + ":cap")) setCapture(true); } catch (e) {}
-  $("#lock-btn").hidden = true;
+  $("#lock-btn").hidden = false;
   loadLocal();
   let list = [];
   try { list = JSON.parse(localStorage.getItem(LS_MEMBERS) || "[]"); } catch (e) {}
@@ -1705,7 +1742,12 @@ async function startLive() {
 }
 (async () => {
   /* outside claude.ai (e.g. GitHub Pages) there is no shared db: open straight away and keep everything on this device */
-  if (!window.claude || !claude.use) { startLocal(); return; }
+  if (!window.claude || !claude.use) {
+    if (loggedIn()) startLocal();
+    else if (!window.crypto || !crypto.subtle) showGate("เบราว์เซอร์นี้ไม่รองรับการตรวจรหัส · ลองเบราว์เซอร์อื่น", { warn: true });
+    else showGate("ใส่ ID และรหัสผ่านเพื่อดูรายชื่อปาร์ตี้", { form: "login" });
+    return;
+  }
   if (!window.crypto || !crypto.subtle) { showGate("เบราว์เซอร์นี้ไม่รองรับการเข้ารหัส · ลองเบราว์เซอร์อื่น", { warn: true }); return; }
   try {
     [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);

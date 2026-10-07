@@ -487,11 +487,11 @@ body.unlocked .gate { display: none; }
             <option value="fill">เติมช่องว่าง · ดึงคนที่ยังไม่ลงตี้</option>
             <option value="redo">จัดใหม่ทั้ง 80 ช่อง · รวมคนที่ลงตี้แล้ว</option>
           </select>
-          <label class="chk"><input type="checkbox" id="bal-nojob" checked>รวมคนที่ยังไม่มีอาชีพ</label>
+          <label class="chk"><input type="checkbox" id="bal-nojob" checked>รวมคนที่ยังไม่มีอาชีพ (ระบุอาชีพให้เลย)</label>
           <button class="btn lime" type="button" id="bal-go">จัดสมดุลอาชีพ</button>
           <button class="btn ghost" type="button" id="bal-undo" hidden>ย้อนกลับ</button>
         </div>
-        <p class="hint">กระจาย HP / ซัพพอร์ต / DPS ให้ทุก PT คะแนนใกล้เคียงกัน · เลี่ยงพระเกิน 3 และ MIN+GYP+HP ในตี้เดียว · ช่องที่จองอาชีพไว้จะได้คนอาชีพนั้นก่อน · กดซ้ำเพื่อสุ่มแบบใหม่</p>
+        <p class="hint">กระจาย HP / ซัพพอร์ต / DPS ให้ทุก PT คะแนนใกล้เคียงกัน · เลี่ยงพระเกิน 3 และ MIN+GYP+HP ในตี้เดียว · ช่องที่จองอาชีพไว้จะได้คนอาชีพนั้นก่อน · คนที่ยังไม่มีอาชีพจะได้อาชีพที่ตี้นั้นขาด · กดซ้ำเพื่อสุ่มแบบใหม่</p>
       </div>
       <div class="field">
         <label for="auto-txt">หรือวางรายชื่อ (ฟอร์แมต TEAM → Party N → 1. อาชีพ - ชื่อ)</label>
@@ -1286,24 +1286,44 @@ function balanceCost(pts) {
   cost -= 3 * T.reduce((a, t) => a + t.reduce((b, v) => b + v, 0), 0);
   return cost;
 }
-/* fixed: jobs already locked in each PT · cap: free seats per PT · people: [{job}] to place */
+/* the job that adds most to a PT: biggest score gain, no repeats, no HP-crowd / trio loss, a little variety across the guild */
+function pickJob(ptJobs, guild) {
+  const worth = js => {
+    const c = {}; js.forEach(j => c[j] = (c[j] || 0) + 1);
+    let dup = 0; for (const k in c) dup += c[k] * (c[k] - 1) / 2;
+    return ptTotals(js).reduce((a, v) => a + v, 0) - 25 * dup;
+  };
+  let best = "", bestV = -Infinity;
+  for (const { id } of JOBS) {
+    const v = worth(ptJobs.concat(id)) - 1.5 * (guild[id] || 0) + Math.random() * .5;
+    if (v > bestV) { bestV = v; best = id; }
+  }
+  return best;
+}
+/* fixed: jobs already locked in each PT · cap: free seats per PT · people: [{job}] to place
+   people with no job get one chosen for them (x.picked = true) — whichever fills their PT's gaps best */
 function balanceParties(fixed, cap, people) {
   const asg = fixed.map(() => []);
   const jobsOf = p => fixed[p].concat(asg[p].map(x => x.job));
   const cost = () => balanceCost(fixed.map((_, p) => jobsOf(p)));
   const rnd = n => Math.floor(Math.random() * n);
-  /* greedy: rarest jobs first, each into the PT where it costs least */
+  /* greedy: rarest jobs first, each into the PT where it costs least; no-job people last, trying every job too */
   const freq = {}; people.forEach(x => freq[x.job] = (freq[x.job] || 0) + 1);
-  const order = people.slice().sort((a, b) => (!a.job - !b.job) || freq[a.job] - freq[b.job] || Math.random() - .5);
+  const guild = {}; /* jobs handed out so far, so picks don't all land on the same few jobs */
+  const order = people.map(x => x.job ? x : { ...x, picked: true })
+    .sort((a, b) => (!a.job - !b.job) || freq[a.job] - freq[b.job] || Math.random() - .5);
   for (const x of order) {
-    let bestP = -1, bestC = Infinity;
+    let bestP = -1, bestJ = x.job, bestC = Infinity;
     for (let p = 0; p < fixed.length; p++) {
       if (asg[p].length >= cap[p]) continue;
-      asg[p].push(x); const c = cost(); asg[p].pop();
-      if (c < bestC) { bestC = c; bestP = p; }
+      const j = x.picked ? pickJob(jobsOf(p), guild) : x.job;
+      x.job = j; asg[p].push(x); const c = cost(); asg[p].pop();
+      if (c < bestC) { bestC = c; bestP = p; bestJ = j; }
     }
+    x.job = bestJ;
     if (bestP < 0) break;
     asg[bestP].push(x);
+    if (x.picked) guild[bestJ] = (guild[bestJ] || 0) + 1;
   }
   let cur = cost(), best = cur, bestAsg = asg.map(a => a.slice()), temp = 40;
   for (let it = 0; it < 12000; it++, temp *= 0.9995) {
@@ -1380,7 +1400,8 @@ function planBalance(redo, withNoJob) {
     });
   });
   const added = people.filter(x => x.name && !placed.has(x.name)).length;
-  return { next, added, left, noJob: withNoJob ? [] : noJob };
+  const picked = asg.flat().filter(x => x.picked).map(x => `${x.name || "?"} → ${JOB[x.job] ? JOB[x.job].tag : x.job}`);
+  return { next, added, left, picked, noJob: withNoJob ? [] : noJob };
 }
 let balUndo = null;
 async function writeMany(next) {
@@ -1396,7 +1417,7 @@ $("#bal-go").onclick = async () => {
   go.disabled = true; msg.textContent = "กำลังจัดสมดุล…";
   await new Promise(r => setTimeout(r, 20));
   try {
-    const { next, added, left, noJob } = planBalance(redo, $("#bal-nojob").checked);
+    const { next, added, left, picked, noJob } = planBalance(redo, $("#bal-nojob").checked);
     if (!Object.keys(next).length) {
       msg.textContent = noJob.length ? `ไม่มีคนให้จัด · ${noJob.length} คนที่ยังไม่ลงตี้ยังไม่มีอาชีพ (ติ๊ก “รวมคนที่ยังไม่มีอาชีพ”)` : "ไม่มีคนที่ยังไม่ลงตี้ · ลองเลือก “จัดใหม่ทั้ง 80 ช่อง”";
       msg.classList.add("warn"); return;
@@ -1408,7 +1429,8 @@ $("#bal-go").onclick = async () => {
     const notes = [];
     if (left.length) notes.push(`ช่องเต็ม ไม่ได้ลงตี้ ${left.length} คน: ${left.join(", ")}`);
     if (noJob.length) notes.push(`ยังไม่มีอาชีพ ไม่ได้จัด ${noJob.length} คน: ${noJob.join(", ")}`);
-    msg.textContent = `✅ ${redo ? "จัดใหม่ทั้งหมดแล้ว" : "เติมช่องว่างแล้ว"} · ดึงคนใหม่ลงตี้ ${added} คน` + (notes.length ? "\n⚠️ " + notes.join("\n⚠️ ") : "");
+    msg.textContent = `✅ ${redo ? "จัดใหม่ทั้งหมดแล้ว" : "เติมช่องว่างแล้ว"} · ดึงคนใหม่ลงตี้ ${added} คน`
+      + (picked.length ? `\n🎯 ระบุอาชีพให้ ${picked.length} คน: ${picked.join(", ")}` : "") + (notes.length ? "\n⚠️ " + notes.join("\n⚠️ ") : "");
     if (notes.length) msg.classList.add("warn");
     toast(`จัดสมดุลเสร็จ · เพิ่ม ${added} คน`);
   } catch (err) {

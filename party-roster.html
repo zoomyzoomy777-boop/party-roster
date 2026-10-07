@@ -378,8 +378,8 @@ body.unlocked .gate { display: none; }
     <div class="console-main">
       <div class="readouts">
         <div class="readout hot"><span class="k">Total</span><span class="v" id="r-total">0<small>/80</small></span></div>
-        <div class="readout"><span class="k">ตี้บน</span><span class="v" id="r-top">0<small>/40</small></span></div>
-        <div class="readout"><span class="k">ตี้ล่าง</span><span class="v" id="r-bot">0<small>/40</small></span></div>
+        <div class="readout"><span class="k">ตี้บน ตี้กัน</span><span class="v" id="r-top">0<small>/40</small></span></div>
+        <div class="readout"><span class="k">ตี้ล่าง ตี้บุก</span><span class="v" id="r-bot">0<small>/40</small></span></div>
         <div class="readout"><span class="k">High Priest</span><span class="v" id="r-hp">0</span></div>
       </div>
       <div class="tools no-capture">
@@ -631,7 +631,7 @@ function scoreOf(job, crowd, trio) {
   if (trio && TRIO.includes(job)) [1, 2].forEach(i => zero.add(i));
   return zero.size ? sc.map((v, i) => (zero.has(i) ? 0 : v)) : sc;
 }
-const SIDES = { top: { th: "ตี้บน", en: "UPPER PARTY", code: "01" }, bot: { th: "ตี้ล่าง", en: "LOWER PARTY", code: "02" } };
+const SIDES = { top: { th: "ตี้บน ตี้กัน", en: "UPPER PARTY", code: "01" }, bot: { th: "ตี้ล่าง ตี้บุก", en: "LOWER PARTY", code: "02" } };
 const PER_SIDE = 40, PER_SQUAD = 5;
 const slotId = (side, n) => side + "-" + String(n).padStart(2, "0");
 const ALL_IDS = [];

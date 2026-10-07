@@ -280,6 +280,11 @@ dialog::backdrop { background: rgba(10, 10, 12, .75); }
 #auto-txt { width: 100%; height: min(46vh, 420px); resize: vertical; background: var(--frame); border: 1px solid var(--rule); color: var(--light); padding: 9px 11px; font-family: var(--f-mono); font-size: 12px; line-height: 1.45; }
 .auto-msg { font-size: 12px; white-space: pre-wrap; margin: 0; min-height: 1em; color: var(--mute); }
 .auto-msg.warn { color: var(--orange); font-weight: 600; }
+.bal { border: 1px solid var(--rule); background: var(--frame); padding: 10px 12px; }
+.bal-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.bal-row select { background: var(--panel); border: 1px solid var(--rule); color: var(--light); padding: 7px 10px; font-family: var(--f-body); font-size: 13px; flex: 1 1 240px; min-width: 0; }
+.bal-row .chk { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--mute); cursor: pointer; text-transform: none; letter-spacing: 0; font-family: var(--f-body); font-weight: 400; }
+.bal-row .chk input { accent-color: var(--lime); }
 
 /* ---------- lock screen: roster stays hidden until the viewer enters the guild passphrase ---------- */
 body:not(.unlocked) .wrap, body:not(.unlocked) .cap-exit { display: none !important; }
@@ -369,7 +374,7 @@ body.unlocked .gate { display: none; }
           <button type="button" data-view="name" aria-pressed="false" title="แสดงเฉพาะชื่อผู้เล่น">ชื่อ</button>
           <button type="button" data-view="both" aria-pressed="true" title="แสดงอาชีพและชื่อผู้เล่น">อาชีพ+ชื่อ</button>
         </div>
-        <button class="btn orange" id="auto-btn" type="button" title="วางรายชื่อ TEAM 1 / TEAM 2 แล้วจัดลงตารางอัตโนมัติ">ออโต้จัดตี้</button>
+        <button class="btn orange" id="auto-btn" type="button" title="ดึงรายชื่อกิลด์ลงตารางและจัดอาชีพให้สมดุล หรือวางรายชื่อ TEAM 1 / TEAM 2">ออโต้จัดตี้</button>
         <button class="btn" id="copy-btn" type="button">คัดลอกรายชื่อ</button>
         <button class="btn" id="share-btn" type="button" title="ส่งลิงก์หน้านี้ให้คนอื่น">แชร์เว็บ</button>
         <button class="btn" id="pw-btn" type="button" title="เปลี่ยนรหัสผ่านกิลด์ (เข้ารหัสข้อมูลใหม่ทั้งหมด)" hidden>เปลี่ยนรหัส</button>
@@ -475,8 +480,22 @@ body.unlocked .gate { display: none; }
       <span class="code">TEAM 1 → ตี้บน · TEAM 2 → ตี้ล่าง</span>
     </div>
     <div class="dlg-body">
+      <div class="field bal">
+        <span class="lbl">จัดสมดุลจากรายชื่อกิลด์</span>
+        <div class="bal-row">
+          <label class="sr" for="bal-scope">ขอบเขตการจัด</label>
+          <select id="bal-scope">
+            <option value="fill">เติมช่องว่าง · ดึงคนที่ยังไม่ลงตี้</option>
+            <option value="redo">จัดใหม่ทั้ง 80 ช่อง · รวมคนที่ลงตี้แล้ว</option>
+          </select>
+          <label class="chk"><input type="checkbox" id="bal-nojob" checked>รวมคนที่ยังไม่มีอาชีพ</label>
+          <button class="btn lime" type="button" id="bal-go">จัดสมดุลอาชีพ</button>
+          <button class="btn ghost" type="button" id="bal-undo" hidden>ย้อนกลับ</button>
+        </div>
+        <p class="hint">กระจาย HP / ซัพพอร์ต / DPS ให้ทุก PT คะแนนใกล้เคียงกัน · เลี่ยงพระเกิน 3 และ MIN+GYP+HP ในตี้เดียว · ช่องที่จองอาชีพไว้จะได้คนอาชีพนั้นก่อน · กดซ้ำเพื่อสุ่มแบบใหม่</p>
+      </div>
       <div class="field">
-        <label for="auto-txt">รายชื่อ (ฟอร์แมต TEAM → Party N → 1. อาชีพ - ชื่อ)</label>
+        <label for="auto-txt">หรือวางรายชื่อ (ฟอร์แมต TEAM → Party N → 1. อาชีพ - ชื่อ)</label>
         <textarea id="auto-txt" spellcheck="false" placeholder="⚔️ Guild TEAM 1&#10;Party 1&#10;1. Biochemist - ชื่อ&#10;…"></textarea>
         <p class="hint">ตี้ที่มีในข้อความจะถูกแทนที่ทั้งฝั่ง · ชื่อที่สะกดใกล้เคียงรายชื่อกิลด์จะจับคู่ให้อัตโนมัติ (ได้ UID ด้วย) · “Summoner” เฉยๆ = ใช้อาชีพในรายชื่อกิลด์ ถ้าไม่มีจะเป็น M/Summoner</p>
       </div>
@@ -1249,6 +1268,178 @@ $("#auto-form").addEventListener("submit", async e => {
     msg.textContent = err && err.code ? writeError(err) : (err && err.message) || "จัดตี้ไม่สำเร็จ"; msg.classList.add("warn");
   } finally { go.disabled = false; }
 });
+
+/* ---------- auto-balance from the guild list ----------
+   Pulls guild members into the 16 PTs and spreads jobs so every PT's six score totals land close together.
+   Greedy placement, then simulated annealing over moves/swaps between PTs. */
+const N_PT = (PER_SIDE / PER_SQUAD) * 2;
+const ptSlotIds = p => {
+  const side = p < N_PT / 2 ? "top" : "bot", base = (p % (N_PT / 2)) * PER_SQUAD;
+  return Array.from({ length: PER_SQUAD }, (_, i) => slotId(side, base + i + 1));
+};
+const ROLES = [...new Set(JOBS.map(j => j.role))];
+function ptTotals(jobs) {
+  const crowd = jobs.filter(j => j === "High Priest").length > PRIEST_CAP;
+  const trio = TRIO.every(t => jobs.includes(t)) || (jobs.length > 0 && jobs.every(j => TRIO.includes(j)));
+  const t = STATS.map(() => 0);
+  for (const j of jobs) { const sc = scoreOf(j, crowd, trio); if (sc) sc.forEach((v, i) => t[i] += v); }
+  return t;
+}
+const variance = xs => { const m = xs.reduce((a, x) => a + x, 0) / xs.length; return xs.reduce((a, x) => a + (x - m) ** 2, 0); };
+/* lower is better: even stat totals, even PT sizes, roles spread out, few repeated jobs, no score lost to the HP / trio rules */
+function balanceCost(pts) {
+  const T = pts.map(ptTotals);
+  let cost = 0;
+  for (let s = 0; s < STATS.length; s++) cost += variance(T.map(t => t[s]));
+  cost += 30 * variance(pts.map(p => p.length));
+  for (const r of ROLES) cost += 12 * variance(pts.map(p => p.filter(j => JOB[j] && JOB[j].role === r).length));
+  /* High Priests are the key seat: one per PT before any PT gets a second */
+  cost += 40 * variance(pts.map(p => p.filter(j => j === "High Priest").length));
+  for (const p of pts) {
+    const c = {}; for (const j of p) if (j) c[j] = (c[j] || 0) + 1;
+    for (const k in c) cost += 10 * c[k] * (c[k] - 1) / 2;
+  }
+  cost -= 3 * T.reduce((a, t) => a + t.reduce((b, v) => b + v, 0), 0);
+  return cost;
+}
+/* fixed: jobs already locked in each PT · cap: free seats per PT · people: [{job}] to place */
+function balanceParties(fixed, cap, people) {
+  const asg = fixed.map(() => []);
+  const jobsOf = p => fixed[p].concat(asg[p].map(x => x.job));
+  const cost = () => balanceCost(fixed.map((_, p) => jobsOf(p)));
+  const rnd = n => Math.floor(Math.random() * n);
+  /* greedy: rarest jobs first, each into the PT where it costs least */
+  const freq = {}; people.forEach(x => freq[x.job] = (freq[x.job] || 0) + 1);
+  const order = people.slice().sort((a, b) => (!a.job - !b.job) || freq[a.job] - freq[b.job] || Math.random() - .5);
+  for (const x of order) {
+    let bestP = -1, bestC = Infinity;
+    for (let p = 0; p < fixed.length; p++) {
+      if (asg[p].length >= cap[p]) continue;
+      asg[p].push(x); const c = cost(); asg[p].pop();
+      if (c < bestC) { bestC = c; bestP = p; }
+    }
+    if (bestP < 0) break;
+    asg[bestP].push(x);
+  }
+  let cur = cost(), best = cur, bestAsg = asg.map(a => a.slice()), temp = 40;
+  for (let it = 0; it < 12000; it++, temp *= 0.9995) {
+    const p = rnd(fixed.length), q = rnd(fixed.length);
+    if (p === q || !asg[p].length) continue;
+    const i = rnd(asg[p].length);
+    let undo;
+    if (asg[q].length < cap[q] && (!asg[q].length || Math.random() < .35)) {
+      const x = asg[p].splice(i, 1)[0]; asg[q].push(x);
+      undo = () => { asg[q].pop(); asg[p].splice(i, 0, x); };
+    } else if (asg[q].length) {
+      const k = rnd(asg[q].length);
+      if (asg[p][i].job === asg[q][k].job) continue;
+      [asg[p][i], asg[q][k]] = [asg[q][k], asg[p][i]];
+      undo = () => { [asg[p][i], asg[q][k]] = [asg[q][k], asg[p][i]]; };
+    } else continue;
+    const c = cost();
+    if (c <= cur || Math.random() < Math.exp((cur - c) / temp)) {
+      cur = c;
+      if (c < best) { best = c; bestAsg = asg.map(a => a.slice()); }
+    } else undo();
+  }
+  /* polish: take every swap between PTs that still helps, until none does */
+  asg.splice(0, asg.length, ...bestAsg.map(a => a.slice()));
+  cur = cost();
+  for (let pass = 0, better = true; better && pass < 6; pass++) {
+    better = false;
+    for (let p = 0; p < asg.length; p++) for (let q = p + 1; q < asg.length; q++)
+      for (let i = 0; i < asg[p].length; i++) for (let k = 0; k < asg[q].length; k++) {
+        if (asg[p][i].job === asg[q][k].job) continue;
+        [asg[p][i], asg[q][k]] = [asg[q][k], asg[p][i]];
+        const c = cost();
+        if (c < cur - 1e-9) { cur = c; better = true; }
+        else [asg[p][i], asg[q][k]] = [asg[q][k], asg[p][i]];
+      }
+  }
+  return asg;
+}
+/* returns the slots to write; redo = reshuffle everyone already seated too, otherwise only fill empty seats */
+function planBalance(redo, withNoJob) {
+  const placed = new Set(Object.values(slots).filter(occupied).map(d => d.name).filter(Boolean));
+  const free = members.filter(m => !placed.has(m.name));
+  const noJob = free.filter(m => !m.job).map(m => m.name);
+  const cand = free.filter(m => m.job || withNoJob)
+    .map(m => ({ name: m.name, job: m.job || "", ...(m.uid ? { uid: m.uid } : {}) }))
+    .sort((a, b) => !a.job - !b.job);
+  /* seats reserved for a job (no name yet) take a pool member with that job first */
+  const seat = {};
+  for (const id of ALL_IDS) {
+    const d = slots[id];
+    if (!d || d.name || !d.job) continue;
+    const k = cand.findIndex(c => c.job === d.job);
+    if (k >= 0) seat[id] = cand.splice(k, 1)[0];
+  }
+  const at = id => seat[id] || slots[id];
+  const fixed = [], cap = [], people = [];
+  for (let p = 0; p < N_PT; p++) {
+    const seated = ptSlotIds(p).map(at).filter(occupied);
+    if (redo) { fixed.push([]); cap.push(PER_SQUAD); people.push(...seated.map(d => ({ ...d }))); }
+    else { fixed.push(seated.map(d => d.job)); cap.push(PER_SQUAD - seated.length); }
+  }
+  const room = cap.reduce((a, c) => a + c, 0) - people.length;
+  const left = cand.slice(Math.max(0, room)).map(c => c.name);
+  people.push(...cand.slice(0, Math.max(0, room)));
+  const asg = balanceParties(fixed, cap, people);
+  const next = {};
+  for (const id in seat) next[id] = seat[id];
+  asg.forEach((list, p) => {
+    const ids = redo ? ptSlotIds(p) : ptSlotIds(p).filter(id => !occupied(at(id)));
+    if (redo) ids.forEach(id => next[id] = null);
+    list.slice().sort((a, b) => seatRank(a.job) - seatRank(b.job)).forEach((x, i) => {
+      const d = { name: x.name || "", job: x.job || "" }; if (x.uid) d.uid = x.uid;
+      next[ids[i]] = d;
+    });
+  });
+  const added = people.filter(x => x.name && !placed.has(x.name)).length;
+  return { next, added, left, noJob: withNoJob ? [] : noJob };
+}
+let balUndo = null;
+async function writeMany(next) {
+  await Promise.all(Object.keys(next).map(id =>
+    (occupied(next[id]) || occupied(slots[id])) ? writeSlot(id, next[id]) : null));
+  render();
+}
+$("#bal-go").onclick = async () => {
+  if (!canWrite) { toast("คุณมีสิทธิ์ดูอย่างเดียว"); return; }
+  const msg = $("#auto-msg"), go = $("#bal-go"), redo = $("#bal-scope").value === "redo";
+  msg.classList.remove("warn");
+  if (!membersLoaded) { msg.textContent = "ยังโหลดรายชื่อกิลด์ไม่เสร็จ"; msg.classList.add("warn"); return; }
+  go.disabled = true; msg.textContent = "กำลังจัดสมดุล…";
+  await new Promise(r => setTimeout(r, 20));
+  try {
+    const { next, added, left, noJob } = planBalance(redo, $("#bal-nojob").checked);
+    if (!Object.keys(next).length) {
+      msg.textContent = noJob.length ? `ไม่มีคนให้จัด · ${noJob.length} คนที่ยังไม่ลงตี้ยังไม่มีอาชีพ (ติ๊ก “รวมคนที่ยังไม่มีอาชีพ”)` : "ไม่มีคนที่ยังไม่ลงตี้ · ลองเลือก “จัดใหม่ทั้ง 80 ช่อง”";
+      msg.classList.add("warn"); return;
+    }
+    const snap = {}; for (const id in next) snap[id] = slots[id] ? { ...slots[id] } : null;
+    await writeMany(next);
+    balUndo = snap; $("#bal-undo").hidden = false;
+    sfx("full");
+    const notes = [];
+    if (left.length) notes.push(`ช่องเต็ม ไม่ได้ลงตี้ ${left.length} คน: ${left.join(", ")}`);
+    if (noJob.length) notes.push(`ยังไม่มีอาชีพ ไม่ได้จัด ${noJob.length} คน: ${noJob.join(", ")}`);
+    msg.textContent = `✅ ${redo ? "จัดใหม่ทั้งหมดแล้ว" : "เติมช่องว่างแล้ว"} · ดึงคนใหม่ลงตี้ ${added} คน` + (notes.length ? "\n⚠️ " + notes.join("\n⚠️ ") : "");
+    if (notes.length) msg.classList.add("warn");
+    toast(`จัดสมดุลเสร็จ · เพิ่ม ${added} คน`);
+  } catch (err) {
+    msg.textContent = err && err.code ? writeError(err) : "จัดสมดุลไม่สำเร็จ"; msg.classList.add("warn");
+  } finally { go.disabled = false; }
+};
+$("#bal-undo").onclick = async () => {
+  if (!balUndo) return;
+  try {
+    await writeMany(balUndo);
+    balUndo = null; $("#bal-undo").hidden = true;
+    $("#auto-msg").textContent = "ย้อนกลับแล้ว"; $("#auto-msg").classList.remove("warn");
+    sfx("remove"); toast("ย้อนกลับแล้ว");
+  } catch (err) { toast(writeError(err)); }
+};
 
 /* ---------- encryption ----------
    Everything the roster keeps in db (slots/*, config/members, config/autofill) is AES-GCM ciphertext

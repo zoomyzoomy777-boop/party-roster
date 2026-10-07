@@ -376,7 +376,6 @@ body.unlocked .gate { display: none; }
         </div>
         <button class="btn orange" id="auto-btn" type="button" title="ดึงรายชื่อกิลด์ลงตารางและจัดอาชีพให้สมดุล หรือวางรายชื่อ TEAM 1 / TEAM 2">ออโต้จัดตี้</button>
         <button class="btn" id="copy-btn" type="button">คัดลอกรายชื่อ</button>
-        <button class="btn" id="share-btn" type="button" title="ส่งลิงก์หน้านี้ให้คนอื่น">แชร์เว็บ</button>
         <button class="btn" id="pw-btn" type="button" title="เปลี่ยนรหัสผ่านกิลด์ (เข้ารหัสข้อมูลใหม่ทั้งหมด)" hidden>เปลี่ยนรหัส</button>
         <button class="btn" id="lock-btn" type="button" title="ล็อกหน้านี้และลืมรหัสบนเครื่องนี้">ล็อก</button>
         <button class="btn" id="mute-btn" type="button" aria-pressed="false">เสียง: เปิด</button>
@@ -1163,21 +1162,6 @@ async function copyText(text, okMsg) {
     ta.remove();
   }
 }
-
-/* share: the page's own address when opened directly, otherwise (inside the claude.ai frame) the artifact link */
-const SHARE_URL = "https://claude.ai/artifact/8sc35ziQxtLciyPzvFZLkQ";
-function shareUrl() {
-  try { if (window.top === window && /^https?:$/.test(location.protocol)) return location.href.split("#")[0]; } catch (e) {}
-  return SHARE_URL;
-}
-$("#share-btn").onclick = async () => {
-  const url = shareUrl();
-  if (navigator.share) {
-    try { await navigator.share({ title: "Party Roster 80", text: "จัดตี้กิลด์ 80 ช่อง", url }); return; }
-    catch (e) { if (e && e.name === "AbortError") return; }
-  }
-  copyText(url, "คัดลอกลิงก์แล้ว · วางส่งให้เพื่อนได้เลย");
-};
 
 /* ---------- auto-fill from pasted team list ---------- */
 /* "⚔️ Guild TEAM 1 …" → top, "TEAM 2" → bot; "Party N" picks PT.N; "1. Job - Name" picks the seat */

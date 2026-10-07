@@ -334,6 +334,7 @@ body.unlocked .gate { display: none; }
 }
 @media (max-width: 380px) { .squads { grid-template-columns: minmax(0, 1fr); } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+.floater { position: fixed; left: 0; top: 0; z-index: 4; pointer-events: none; image-rendering: pixelated; will-change: transform; }
 </style>
 
 <section class="gate" id="gate" aria-labelledby="gate-h">
@@ -544,6 +545,25 @@ body.unlocked .gate { display: none; }
 </dialog>
 
 <div class="toast" id="toast" hidden></div>
+<img class="floater" id="floater" src="Mob_Alicel.gif" alt="" aria-hidden="true">
+<script>
+/* Alicel drifts around the page, bobbing up and down and turning to face where she's heading */
+(() => {
+  const el = document.getElementById("floater");
+  if (!el || matchMedia("(prefers-reduced-motion: reduce)").matches) { if (el) el.remove(); return; }
+  let x = Math.random() * innerWidth * 0.6, y = Math.random() * innerHeight * 0.6;
+  let vx = 0.7 + Math.random() * 0.5, vy = 0.4 + Math.random() * 0.4, t = 0;
+  const step = () => {
+    const w = el.offsetWidth || 64, h = el.offsetHeight || 64;
+    x += vx; y += vy; t += 0.05;
+    if (x < 0) { x = 0; vx = Math.abs(vx); } else if (x > innerWidth - w) { x = innerWidth - w; vx = -Math.abs(vx); }
+    if (y < 0) { y = 0; vy = Math.abs(vy); } else if (y > innerHeight - h) { y = innerHeight - h; vy = -Math.abs(vy); }
+    el.style.transform = `translate(${x}px, ${y + Math.sin(t) * 6}px) scaleX(${vx > 0 ? -1 : 1})`;
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+})();
+</script>
 
 <script>
 /* grad = per-job gradient [from, to] used in the "อาชีพ" view mode and the job picker.

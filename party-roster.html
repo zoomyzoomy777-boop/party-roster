@@ -103,6 +103,16 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .squad.full .sq-head .pt:hover { background: var(--lime); color: var(--ink); }
 body.capture .sq-head .pt svg { display: none; }
 .sq-head .n { font-family: var(--f-mono); font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; }
+/* reorder PTs: drag a PT header onto another PT, or step it with ‹ › (order runs ตี้บน PT.1–8 then ตี้ล่าง PT.1–8) */
+.sq-head[draggable="true"] { cursor: grab; }
+.sq-r { display: inline-flex; align-items: center; gap: 2px; }
+.sq-head .mv { background: none; border: 0; color: inherit; font-family: var(--f-mono); font-size: 13px; font-weight: 600; line-height: 1; padding: 1px 4px; cursor: pointer; opacity: .55; }
+.sq-head .mv:hover { opacity: 1; background: var(--ink); color: var(--lime); }
+.squad.full .sq-head .mv:hover { background: var(--lime); color: var(--ink); }
+.sq-head .mv[disabled] { opacity: .15; cursor: default; background: none; color: inherit; }
+body.capture .sq-head .mv { display: none; }
+.squad.pt-dragging { opacity: .4; }
+.squad.pt-over { outline: 3px solid var(--orange); outline-offset: 1px; }
 .squad.full .sq-head { background: var(--ink); color: var(--lime); }
 .rows { display: grid; }
 .slot {
@@ -415,7 +425,7 @@ body.unlocked .gate { display: none; }
       <label class="sr" for="add-job">อาชีพ</label>
       <select id="add-job"><option value="">อาชีพ (ไม่บังคับ)</option></select>
       <button class="btn lime" type="submit" id="add-btn">+ เพิ่มชื่อ</button>
-      <span class="add-hint">ลากชื่อลงช่องในปาร์ตี้ได้เลย · ลากช่องกลับมาที่นี่เพื่อเอาออกจากตี้</span>
+      <span class="add-hint">ลากชื่อลงช่องในปาร์ตี้ได้เลย · ลากช่องกลับมาที่นี่เพื่อเอาออกจากตี้ · ลากหัว PT หรือกด ‹ › เพื่อย้ายลำดับตี้</span>
     </form>
     <div class="pool-list" id="pool-list"><span class="note">กำลังโหลดรายชื่อกิลด์…</span></div>
   </section>
@@ -674,7 +684,9 @@ function renderBoard(side) {
       const id = slotId(side, n); if (occupied(slots[id])) sc++;
       inner += slotHTML(id, n);
     }
-    squads += `<div class="squad${sc === PER_SQUAD ? " full" : ""}"><div class="sq-head"><button type="button" class="pt" data-side="${side}" data-pt="${s + 1}" title="ดูกราฟคะแนนอาชีพของ PT.${s + 1}">PT.${s + 1}<svg viewBox="0 0 10 10" aria-hidden="true"><rect x="0" y="5" width="2.4" height="5"/><rect x="3.8" y="2" width="2.4" height="8"/><rect x="7.6" y="0" width="2.4" height="10"/></svg></button><span class="n">${sc}/${PER_SQUAD}</span></div><div class="rows">${inner}</div></div>`;
+    const p = (side === "top" ? 0 : PER_SIDE / PER_SQUAD) + s, last = (PER_SIDE / PER_SQUAD) * 2 - 1;
+    const mv = (dir, sym, tip) => canWrite ? `<button type="button" class="mv" data-p="${p}" data-mv="${dir}" title="${tip}" aria-label="${tip} PT.${s + 1}"${(dir < 0 ? p === 0 : p === last) ? " disabled" : ""}>${sym}</button>` : "";
+    squads += `<div class="squad${sc === PER_SQUAD ? " full" : ""}" data-p="${p}"><div class="sq-head"${canWrite ? ` draggable="true" data-p="${p}" title="ลากหัว PT ไปวางบน PT อื่นเพื่อย้ายลำดับ"` : ""}><button type="button" class="pt" data-side="${side}" data-pt="${s + 1}" title="ดูกราฟคะแนนอาชีพของ PT.${s + 1}">PT.${s + 1}<svg viewBox="0 0 10 10" aria-hidden="true"><rect x="0" y="5" width="2.4" height="5"/><rect x="3.8" y="2" width="2.4" height="8"/><rect x="7.6" y="0" width="2.4" height="10"/></svg></button><span class="sq-r">${mv(-1, "‹", "เลื่อนขึ้น")}<span class="n">${sc}/${PER_SQUAD}</span>${mv(1, "›", "เลื่อนลง")}</span></div><div class="rows">${inner}</div></div>`;
   }
   el.classList.toggle("readonly", !canWrite);
   el.innerHTML = `
@@ -1070,20 +1082,40 @@ $("#dlg-form").addEventListener("submit", async ev => {
 
 /* ---------- interactions ---------- */
 const boards = document.querySelector(".boards");
+/* move a whole PT to another position in the 16-PT order (ตี้บน PT.1–8, then ตี้ล่าง PT.1–8); the PTs in between shift one place */
+const ptName = p => `${SIDES[p < N_PT / 2 ? "top" : "bot"].th} PT.${p % (N_PT / 2) + 1}`;
+async function movePt(from, to) {
+  if (!canWrite || from === to || to < 0 || to >= N_PT) return;
+  const groups = Array.from({ length: N_PT }, (_, p) => ptSlotIds(p).map(id => slots[id] ? { ...slots[id] } : null));
+  groups.splice(to, 0, groups.splice(from, 1)[0]);
+  const next = {};
+  for (let p = Math.min(from, to); p <= Math.max(from, to); p++) ptSlotIds(p).forEach((id, i) => next[id] = groups[p][i]);
+  fullSquads = null;   // moving a full PT is not a new full PT: no level-up sound
+  try { await writeMany(next); sfx("drop"); toast(`ย้าย ${ptName(from)} ไปเป็น ${ptName(to)} แล้ว`); }
+  catch (err) { toast(writeError(err)); render(); }
+}
 boards.addEventListener("click", e => {
+  const mv = e.target.closest(".mv"); if (mv) { const p = Number(mv.dataset.p); movePt(p, p + Number(mv.dataset.mv)); return; }
   const p = e.target.closest(".pt"); if (p) { openPt(p.dataset.side, Number(p.dataset.pt)); return; }
   const s = e.target.closest(".slot"); if (s) openEditor(s.dataset.id);
 });
 /* drag & drop: slot→slot swaps, member→slot places, slot→pool removes from party */
-let dragId = null, dragMember = null;
+let dragId = null, dragMember = null, dragPt = null;
 const pool = document.querySelector(".pool");
 function clearDrag() {
-  dragId = null; dragMember = null;
+  dragId = null; dragMember = null; dragPt = null;
   pool.classList.remove("drop-ok");
-  document.querySelectorAll(".dragging,.drag-over").forEach(x => x.classList.remove("dragging", "drag-over"));
+  document.querySelectorAll(".dragging,.drag-over,.pt-dragging,.pt-over").forEach(x => x.classList.remove("dragging", "drag-over", "pt-dragging", "pt-over"));
 }
 document.addEventListener("dragstart", e => {
   if (!canWrite) return;
+  const h = e.target.closest && e.target.closest(".sq-head[draggable]");
+  if (h) {
+    dragPt = Number(h.dataset.p);
+    h.closest(".squad").classList.add("pt-dragging");
+    e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", "PT " + dragPt);
+    return;
+  }
   const s = e.target.closest && e.target.closest(".slot");
   const m = e.target.closest && e.target.closest(".member");
   if (s) dragId = s.dataset.id;
@@ -1094,6 +1126,13 @@ document.addEventListener("dragstart", e => {
 });
 document.addEventListener("dragend", clearDrag);
 boards.addEventListener("dragover", e => {
+  if (dragPt !== null) {
+    const q = e.target.closest(".squad"); if (!q) return;
+    e.preventDefault();
+    document.querySelectorAll(".pt-over").forEach(x => x !== q && x.classList.remove("pt-over"));
+    if (Number(q.dataset.p) !== dragPt) q.classList.add("pt-over");
+    return;
+  }
   const s = e.target.closest(".slot"); if (!s || !(dragId || dragMember)) return;
   e.preventDefault();
   document.querySelectorAll(".drag-over").forEach(x => x !== s && x.classList.remove("drag-over"));
@@ -1101,6 +1140,13 @@ boards.addEventListener("dragover", e => {
 });
 boards.addEventListener("dragleave", e => { const s = e.target.closest(".slot"); if (s && !s.contains(e.relatedTarget)) s.classList.remove("drag-over"); });
 boards.addEventListener("drop", async e => {
+  if (dragPt !== null) {
+    const q = e.target.closest(".squad"); if (!q) return;
+    e.preventDefault();
+    const from = dragPt, to = Number(q.dataset.p); clearDrag();
+    movePt(from, to);
+    return;
+  }
   const s = e.target.closest(".slot"); if (!s || !(dragId || dragMember)) return;
   e.preventDefault();
   const from = dragId, name = dragMember, to = s.dataset.id; clearDrag();
